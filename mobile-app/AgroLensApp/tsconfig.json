@@ -1,0 +1,8 @@
+{
+  "extends": "@react-native/typescript-config",
+  "compilerOptions": {
+    "types": ["jest"]
+  },
+  "include": ["**/*.ts", "**/*.tsx", "../AgroLensSDK54/src/screens/LoginScreen.js", "../AgroLensSDK54/src/screens/ScanScreen.js", "../AgroLensSDK54/src/screens/ResultsScreen.js", "../AgroLensSDK54/src/screens/HistoryScreen.js", "../AgroLensSDK54/src/screens/ProfileScreen.js"],
+  "exclude": ["**/node_modules", "**/Pods"]
+}

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🌿 AgroLens - Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 10px; }
+        button { background: #2ecc71; color: white; padding: 12px 30px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
+        img { max-width: 100%; margin: 20px 0; }
+        .result { background: #f0f4f8; padding: 15px; border-radius: 5px; margin-top: 20px; }
+        .healthy { color: green; font-weight: bold; }
+        .diseased { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌿 AgroLens</h1>
+        <h3>Tomato Disease Detection</h3>
+        
+        <input type="file" id="imageInput" accept="image/*">
+        <br><br>
+        <button onclick="predict()">🔍 Detect Disease</button>
+        
+        <div id="result" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        async function predict() {
+            const file = document.getElementById('imageInput').files[0];
+            if (!file) {
+                alert('Please select an image first!');
+                return;
+            }
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '⏳ Processing...';
+            resultDiv.style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const response = await fetch('http://localhost:3000/api/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const r = data.data;
+                    resultDiv.innerHTML = `
+                        <h3>📊 Detection Result</h3>
+                        <p><strong>Status:</strong> <span class="${r.status === 'Healthy' ? 'healthy' : 'diseased'}">${r.status}</span></p>
+                        <p><strong>Disease:</strong> ${r.disease}</p>
+                        <p><strong>Confidence:</strong> ${r.confidence}%</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = '❌ Error: ' + data.error;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '❌ Connection error. Make sure backend is running!';
+            }
+        }
+    </script>
+</body>
+</html>
