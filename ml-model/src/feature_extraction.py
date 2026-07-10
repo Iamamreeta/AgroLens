@@ -31,7 +31,7 @@ classes = ['Early_blight', 'Late_blight', 'Healthy', 'Leaf_mold']
 for class_name in classes:
     class_path = f'dataset/train/{class_name}'
     if os.path.exists(class_path):
-        images = [f for f in os.listdir(class_path) if f.endswith(('.jpg', '.jpeg', '.png'))]
+        images = [f for f in os.listdir(class_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
         print(f"   {class_name}: {len(images)} images")
         
         for img_file in tqdm(images):
@@ -53,7 +53,7 @@ test_labels = []
 for class_name in classes:
     class_path = f'dataset/test/{class_name}'
     if os.path.exists(class_path):
-        images = [f for f in os.listdir(class_path) if f.endswith(('.jpg', '.jpeg', '.png'))]
+        images = [f for f in os.listdir(class_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
         print(f"   {class_name}: {len(images)} images")
         
         for img_file in tqdm(images):

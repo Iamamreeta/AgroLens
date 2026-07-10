@@ -2,32 +2,32 @@
 TRAINING RESULTS - SVM TOMATO DISEASE CLASSIFICATION
 ============================================================
 
-Accuracy: 25.00%
+Accuracy: 93.30%
 
 Classification Report:
               precision    recall  f1-score   support
 
-Early_blight       0.00      0.00      0.00         2
-     Healthy       0.00      0.00      0.00         2
- Late_blight       0.50      0.50      0.50         2
-   Leaf_mold       0.25      0.50      0.33         2
+Early_blight       0.73      1.00      0.84        16
+     Healthy       1.00      1.00      1.00        61
+ Late_blight       0.88      0.92      0.90        50
+   Leaf_mold       0.98      0.87      0.92        67
 
-    accuracy                           0.25         8
-   macro avg       0.19      0.25      0.21         8
-weighted avg       0.19      0.25      0.21         8
+    accuracy                           0.93       194
+   macro avg       0.90      0.95      0.92       194
+weighted avg       0.94      0.93      0.93       194
 
 
 Confusion Matrix:
-[[0 0 0 2]
- [1 0 1 0]
- [0 0 1 1]
- [0 1 0 1]]
+[[16  0  0  0]
+ [ 0 61  0  0]
+ [ 3  0 46  1]
+ [ 3  0  6 58]]
 
 Classes: ['Early_blight' 'Healthy' 'Late_blight' 'Leaf_mold']
-Training samples: 20
-Test samples: 8
+Training samples: 3824
+Test samples: 194
 Features: 512
 Kernel: rbf
 C: 1.0
 Gamma: scale
-Time taken: 0.75 seconds
+Time taken: 4.91 seconds
