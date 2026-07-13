@@ -4,11 +4,20 @@ import pickle
 from tensorflow.keras.applications import VGG16
 from tensorflow.keras.applications.vgg16 import preprocess_input
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tqdm import tqdm
 
 print("=" * 50)
 print("🔬 FEATURE EXTRACTION")
 print("=" * 50)
+#data augumentation
+datagen = ImageDataGenerator(
+    rotation_range=20,
+    horizontal_flip=True,
+    zoom_range=0.2,
+    brightness_range=[0.8, 1.2]
+)
+
 
 print("\n📥 Loading VGG16...")
 vgg16 = VGG16(weights='imagenet', include_top=False, pooling='avg')
