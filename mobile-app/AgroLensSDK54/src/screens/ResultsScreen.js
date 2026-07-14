@@ -7,7 +7,7 @@ import {
   SafeAreaView,
   ScrollView,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons as Icon } from '@expo/vector-icons';
 
 const DISEASE_INFO = {
   'Early_blight': {

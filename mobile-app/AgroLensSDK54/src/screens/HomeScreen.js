@@ -18,12 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import AppLogo from '../../assets/logo.png';
 
-const API_URL = Platform.select({
-  android: 'http://192.168.7.176:3000/api',
-  ios: 'http://localhost:3000/api',
-  default: 'http://192.168.7.176:3000/api',
-});
-
+const API_URL = 'http://192.168.7.176:3000/api';
 export default function HomeScreen({ navigation }) {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);

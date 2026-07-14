@@ -8,11 +8,14 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
+// File upload
 const upload = multer({ dest: 'uploads/' });
 
+// Health check
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'healthy', 
@@ -21,6 +24,7 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Prediction endpoint
 app.post('/api/predict', upload.single('image'), async (req, res) => {
     let filePath = null;
     
@@ -37,7 +41,7 @@ app.post('/api/predict', upload.single('image'), async (req, res) => {
         const formData = new FormData();
         formData.append('file', fs.createReadStream(filePath));
 
-        console.log('📤 Sending to FastAPI on port 5002...');
+        console.log('📤 Sending to FastAPI on port 5001...');
         
         const response = await axios.post('http://localhost:5001/predict', formData, {
             headers: { ...formData.getHeaders() },

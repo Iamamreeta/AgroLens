@@ -30,4 +30,4 @@ Features: 512
 Kernel: rbf
 C: 1.0
 Gamma: scale
-Time taken: 4.91 seconds
+Time taken: 11.13 seconds
