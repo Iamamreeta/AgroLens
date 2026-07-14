@@ -4,11 +4,20 @@ import pickle
 from tensorflow.keras.applications import VGG16
 from tensorflow.keras.applications.vgg16 import preprocess_input
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tqdm import tqdm
 
 print("=" * 50)
 print("🔬 FEATURE EXTRACTION")
 print("=" * 50)
+#data augumentation
+datagen = ImageDataGenerator(
+    rotation_range=20,
+    horizontal_flip=True,
+    zoom_range=0.2,
+    brightness_range=[0.8, 1.2]
+)
+
 
 print("\n📥 Loading VGG16...")
 vgg16 = VGG16(weights='imagenet', include_top=False, pooling='avg')
@@ -31,7 +40,7 @@ classes = ['Early_blight', 'Late_blight', 'Healthy', 'Leaf_mold']
 for class_name in classes:
     class_path = f'dataset/train/{class_name}'
     if os.path.exists(class_path):
-        images = [f for f in os.listdir(class_path) if f.endswith(('.jpg', '.jpeg', '.png'))]
+        images = [f for f in os.listdir(class_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
         print(f"   {class_name}: {len(images)} images")
         
         for img_file in tqdm(images):
@@ -53,7 +62,7 @@ test_labels = []
 for class_name in classes:
     class_path = f'dataset/test/{class_name}'
     if os.path.exists(class_path):
-        images = [f for f in os.listdir(class_path) if f.endswith(('.jpg', '.jpeg', '.png'))]
+        images = [f for f in os.listdir(class_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
         print(f"   {class_name}: {len(images)} images")
         
         for img_file in tqdm(images):
