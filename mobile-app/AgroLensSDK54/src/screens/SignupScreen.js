@@ -12,9 +12,10 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import { signUp } from '../services/AuthService';
 import AppLogo from '../../assets/logo.png';
 
@@ -48,8 +49,11 @@ export default function SignupScreen({ navigation }) {
     setLoading(false);
 
     if (result.success) {
-      Alert.alert('Success', 'Account created successfully!');
-      navigation.replace('Home');
+      Alert.alert(
+        'Success',
+        'Account created successfully! Please login.',
+        [{ text: 'OK', onPress: () => navigation.replace('Login') }]
+      );
     } else {
       Alert.alert('Signup Failed', result.error);
     }
@@ -57,129 +61,143 @@ export default function SignupScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f9f5" />
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
         style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.content}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Icon name="arrow-back-outline" size={24} color="#2ecc71" />
-            </TouchableOpacity>
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          bounces={true}
+          alwaysBounceVertical={true}
+        >
+          {/* Back Button - Fixed */}
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+          >
+            <Ionicons name="arrow-back-outline" size={24} color="#2ecc71" />
+            <Text style={styles.backText}>Back</Text>
+          </TouchableOpacity>
 
-            <View style={styles.logoContainer}>
-              <Image source={AppLogo} style={styles.logo} resizeMode="contain" />
-              <Text style={styles.title}>Create Account</Text>
-              <Text style={styles.subtitle}>Start your farming journey</Text>
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <Image source={AppLogo} style={styles.logo} resizeMode="contain" />
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Start your farming journey</Text>
+          </View>
+
+          {/* Form */}
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Full Name</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="person-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Hari Krishna"
+                  placeholderTextColor="#95a5a6"
+                  value={name}
+                  onChangeText={setName}
+                />
+              </View>
             </View>
 
-            <View style={styles.form}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Full Name</Text>
-                <View style={styles.inputContainer}>
-                  <Icon name="person-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Hari Krishna"
-                    placeholderTextColor="#95a5a6"
-                    value={name}
-                    onChangeText={setName}
-                  />
-                </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email Address</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="mail-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="hari@example.com"
+                  placeholderTextColor="#95a5a6"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
               </View>
+            </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email Address</Text>
-                <View style={styles.inputContainer}>
-                  <Icon name="mail-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="hari@example.com"
-                    placeholderTextColor="#95a5a6"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.inputContainer}>
-                  <Icon name="lock-closed-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="********"
-                    placeholderTextColor="#95a5a6"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                  />
-                  <TouchableOpacity 
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    <Icon 
-                      name={showPassword ? 'eye-outline' : 'eye-off-outline'} 
-                      size={20} 
-                      color="#95a5a6" 
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Confirm Password</Text>
-                <View style={styles.inputContainer}>
-                  <Icon name="lock-closed-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="********"
-                    placeholderTextColor="#95a5a6"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry={!showPassword}
-                  />
-                </View>
-              </View>
-
-              <TouchableOpacity style={styles.termsRow} onPress={() => setAgree(!agree)}>
-                <View style={[styles.checkbox, agree && styles.checkboxActive]} />
-                <Text style={styles.termsText}>
-                  By creating an account, you agree to our Terms of Service and Privacy Policy.
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.signupButton}
-                onPress={handleSignup}
-                disabled={loading}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={['#2ecc71', '#27ae60']}
-                  style={styles.signupGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Password</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="********"
+                  placeholderTextColor="#95a5a6"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity 
+                  style={styles.eyeIcon}
+                  onPress={() => setShowPassword(!showPassword)}
                 >
-                  {loading ? (
-                    <ActivityIndicator color="white" size="small" />
-                  ) : (
-                    <>
-                      <Icon name="person-add-outline" size={22} color="white" />
-                      <Text style={styles.signupButtonText}> Create Account</Text>
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-
-              <View style={styles.loginRow}>
-                <Text style={styles.loginText}>Already have an account?</Text>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                  <Text style={styles.loginLink}> Log In</Text>
+                  <Ionicons 
+                    name={showPassword ? 'eye-outline' : 'eye-off-outline'} 
+                    size={20} 
+                    color="#95a5a6" 
+                  />
                 </TouchableOpacity>
               </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirm Password</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="********"
+                  placeholderTextColor="#95a5a6"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.termsRow} onPress={() => setAgree(!agree)}>
+              <View style={[styles.checkbox, agree && styles.checkboxActive]} />
+              <Text style={styles.termsText}>
+                By creating an account, you agree to our Terms of Service and Privacy Policy.
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.signupButton}
+              onPress={handleSignup}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={['#2ecc71', '#27ae60']}
+                style={styles.signupGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                {loading ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="person-add-outline" size={22} color="white" />
+                    <Text style={styles.signupButtonText}> Create Account</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={styles.loginRow}>
+              <Text style={styles.loginText}>Already have an account?</Text>
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Text style={styles.loginLink}> Log In</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
@@ -196,13 +214,23 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    padding: 30,
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 30,
     paddingTop: 10,
+    paddingBottom: 40,
   },
   backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 10,
+    paddingVertical: 8,
+  },
+  backText: {
+    fontSize: 16,
+    color: '#2ecc71',
+    fontWeight: '500',
+    marginLeft: 4,
   },
   logoContainer: {
     alignItems: 'center',
@@ -300,11 +328,13 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+    marginLeft: 8,
   },
   loginRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 16,
+    marginBottom: 20,
   },
   loginText: {
     color: '#5a7a6a',

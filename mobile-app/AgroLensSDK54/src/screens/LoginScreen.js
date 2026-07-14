@@ -11,9 +11,11 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  StatusBar,
+  ScrollView,  // ✅ ADD THIS!
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import { login } from '../services/AuthService';
 import AppLogo from '../../assets/logo.png';
 
@@ -42,24 +44,37 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f9f5" />
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
         style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
-        <View style={styles.content}>
-          {/* Logo */}
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Back Button */}
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back-outline" size={24} color="#2ecc71" />
+            <Text style={styles.backText}>Back</Text>
+          </TouchableOpacity>
+
           <View style={styles.logoContainer}>
             <Image source={AppLogo} style={styles.logo} resizeMode="contain" />
             <Text style={styles.title}>AgroLens</Text>
             <Text style={styles.subtitle}>Sign in to continue</Text>
           </View>
 
-          {/* Form */}
           <View style={styles.form}>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email Address</Text>
               <View style={styles.inputContainer}>
-                <Icon name="mail-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+                <Ionicons name="mail-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="hari@farm.com"
@@ -75,7 +90,7 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Password</Text>
               <View style={styles.inputContainer}>
-                <Icon name="lock-closed-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+                <Ionicons name="lock-closed-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••"
@@ -88,7 +103,7 @@ export default function LoginScreen({ navigation }) {
                   style={styles.eyeIcon}
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <Icon 
+                  <Ionicons 
                     name={showPassword ? 'eye-outline' : 'eye-off-outline'} 
                     size={20} 
                     color="#95a5a6" 
@@ -117,7 +132,7 @@ export default function LoginScreen({ navigation }) {
                   <ActivityIndicator color="white" size="small" />
                 ) : (
                   <>
-                    <Icon name="log-in-outline" size={22} color="white" />
+                    <Ionicons name="log-in-outline" size={22} color="white" />
                     <Text style={styles.loginButtonText}> Login</Text>
                   </>
                 )}
@@ -131,7 +146,7 @@ export default function LoginScreen({ navigation }) {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -145,10 +160,24 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    padding: 30,
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 30,
+    paddingTop: 10,
+    paddingBottom: 40,
     justifyContent: 'center',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingVertical: 8,
+  },
+  backText: {
+    fontSize: 16,
+    color: '#2ecc71',
+    fontWeight: '500',
+    marginLeft: 4,
   },
   logoContainer: {
     alignItems: 'center',
@@ -229,6 +258,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+    marginLeft: 8,
   },
   signupRow: {
     flexDirection: 'row',
