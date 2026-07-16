@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   View,
@@ -8,6 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons as Icon } from '@expo/vector-icons';
+
 const DISEASE_INFO = {
   'Early_blight': {
     name: 'Early Blight',
@@ -85,119 +87,145 @@ const DISEASE_INFO = {
 
 export default function ResultsScreen({ navigation, route }) {
   const { result } = route.params || { result: null };
-  
-  if (!result) {
+
+  if (result) {
+    const info = DISEASE_INFO[result.disease] || DISEASE_INFO['Healthy'];
+    const isHealthy = result.status === 'Healthy';
+
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Icon name="alert-circle-outline" size={60} color="#e74c3c" />
-          <Text style={styles.errorText}>No results found</Text>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const info = DISEASE_INFO[result.disease] || DISEASE_INFO['Healthy'];
-  const isHealthy = result.status === 'Healthy';
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Icon name="arrow-back-outline" size={24} color="#2ecc71" />
-            <Text style={styles.backText}> Back</Text>
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Icon name="document-text-outline" size={24} color="#1a3a2a" />
-            <Text style={styles.headerTitle}> Results</Text>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Icon name="arrow-back" size={24} color="#1a3a2a" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Scan Results</Text>
+            <View style={{ width: 24 }} />
           </View>
-          <View style={{ width: 70 }} />
-        </View>
 
-        <View style={[styles.statusCard, isHealthy ? styles.healthyCard : styles.diseasedCard]}>
-          <Icon name={isHealthy ? "checkmark-circle" : "alert-circle"} size={50} color={isHealthy ? "#27ae60" : "#e74c3c"} />
-          <Text style={styles.statusText}>{result.status}</Text>
-          <Text style={styles.diseaseName}>{info.name}</Text>
-          <View style={styles.confidenceContainer}>
-            <Text style={styles.confidenceLabel}>Confidence</Text>
-            <Text style={styles.confidenceValue}>{result.confidence}%</Text>
+          <View style={[styles.statusCard, isHealthy ? styles.healthyCard : styles.diseasedCard]}>
+            <Icon
+              name={isHealthy ? 'checkmark-circle' : 'warning'}
+              size={56}
+              color="white"
+            />
+            <Text style={styles.statusText}>{result.status}</Text>
+            <Text style={styles.diseaseName}>{info.name}</Text>
+            <View style={styles.confidenceContainer}>
+              <Text style={styles.confidenceLabel}>Confidence</Text>
+              <Text style={styles.confidenceValue}>{result.confidence}%</Text>
+            </View>
           </View>
-        </View>
 
-        {!isHealthy && (
-          <View style={styles.severityCard}>
-            <Icon name="warning-outline" size={22} color="#e67e22" />
+          {!isHealthy && (
+            <View style={styles.severityCard}>
+              <Icon
+              name="alert-circle-outline"
+              size={22}
+              color={
+                info.severity === 'Critical'
+                  ? '#d32f2f'
+                  : info.severity === 'High'
+                  ? '#f57c00'
+                  : '#f9a825'
+              }
+            />
             <Text style={styles.severityTitle}> Severity Level</Text>
-            <Text style={[
-              styles.severityLevel,
-              info.severity === 'Critical' ? styles.severityCritical :
-              info.severity === 'High' ? styles.severityHigh :
-              styles.severityMedium
-            ]}>
-              {info.severity}
-            </Text>
+            <View style={styles.severityBadge}>
+              <Text
+                style={[
+                  styles.severityLevel,
+                  {
+                    color:
+                      info.severity === 'Critical'
+                        ? '#d32f2f'
+                        : info.severity === 'High'
+                        ? '#f57c00'
+                        : '#f9a825'
+                  }
+                ]}
+              >
+                {info.severity}
+              </Text>
+            </View>
           </View>
         )}
 
         <View style={styles.infoCard}>
-          <View style={styles.sectionHeader}>
-            <Icon name="information-circle-outline" size={22} color="#3498db" />
-            <Text style={styles.sectionTitle}> About This Disease</Text>
-          </View>
-          <Text style={styles.description}>{info.description}</Text>
-        </View>
-
-        <View style={styles.infoCard}>
-          <View style={styles.sectionHeader}>
-            <Icon name="list-outline" size={22} color="#e74c3c" />
-            <Text style={styles.sectionTitle}> Symptoms</Text>
-          </View>
-          {info.symptoms.map((symptom, index) => (
-            <View key={index} style={styles.listItem}>
-              <Icon name="ellipse" size={8} color="#e74c3c" style={styles.bullet} />
-              <Text style={styles.listText}>{symptom}</Text>
+            <View style={styles.sectionHeader}>
+              <Icon name="information-circle-outline" size={24} color="#2196f3" />
+              <Text style={styles.sectionTitle}> About</Text>
             </View>
-          ))}
-        </View>
-
-        <View style={[styles.infoCard, styles.mitigationCard]}>
-          <View style={styles.sectionHeader}>
-            <Icon name="medkit-outline" size={22} color="#2ecc71" />
-            <Text style={styles.sectionTitle}> Mitigation Methods</Text>
+            <Text style={styles.description}>{info.description}</Text>
           </View>
-          {info.mitigation.map((method, index) => (
-            <View key={index} style={styles.listItem}>
-              <Icon name="checkmark-circle" size={18} color="#2ecc71" style={styles.mitigationBullet} />
-              <Text style={styles.mitigationText}>{method}</Text>
-            </View>
-          ))}
-        </View>
 
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.button, styles.primaryButton]}
-            onPress={() => navigation.navigate('Home')}
-          >
-            <Icon name="scan-outline" size={22} color="white" />
-            <Text style={styles.primaryButtonText}> Scan Another</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.button, styles.secondaryButton]}
-            onPress={() => navigation.navigate('Home')}
-          >
-            <Icon name="home-outline" size={22} color="#2ecc71" />
-            <Text style={styles.secondaryButtonText}> Go Home</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+          <View style={styles.infoCard}>
+            <View style={styles.sectionHeader}>
+              <Icon name="list-outline" size={24} color="#f44336" />
+              <Text style={styles.sectionTitle}> Symptoms</Text>
+            </View>
+            {info.symptoms.map((symptom, index) => (
+              <View key={index} style={styles.listItem}>
+                <Icon name="ellipse" size={6} color="#f44336" style={styles.bullet} />
+                <Text style={styles.listText}>{symptom}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={[styles.infoCard, styles.mitigationCard]}>
+            <View style={styles.sectionHeader}>
+              <Icon name="medkit-outline" size={24} color="#4caf50" />
+              <Text style={styles.sectionTitle}> Care Tips</Text>
+            </View>
+            {info.mitigation.map((method, index) => (
+              <View key={index} style={styles.listItem}>
+                <Icon name="checkmark-circle" size={18} color="#4caf50" style={styles.mitigationBullet} />
+                <Text style={styles.mitigationText}>{method}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.button, styles.primaryButton]}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Icon name="camera-outline" size={24} color="white" />
+              <Text style={styles.primaryButtonText}>Scan Again</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, styles.secondaryButton]}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Icon name="home-outline" size={24} color="#2ecc71" />
+              <Text style={styles.secondaryButtonText}>Go Home</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Icon name="arrow-back" size={24} color="#1a3a2a" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Scan Results</Text>
+        <View style={{ width: 24 }} />
+      </View>
+      <View style={styles.errorContainer}>
+        <Icon name="alert-circle-outline" size={70} color="#f44336" />
+        <Text style={styles.errorText}>No results found</Text>
+        <TouchableOpacity
+          style={styles.goBackButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.goBackButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -207,6 +235,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f9f5',
   },
+  scrollContent: {
+    paddingBottom: 40,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -215,44 +246,35 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backText: {
-    fontSize: 16,
-    color: '#2ecc71',
-    fontWeight: '500',
-  },
-  headerTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    padding: 4,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '700',
     color: '#1a3a2a',
   },
   statusCard: {
-    margin: 20,
+    marginHorizontal: 20,
     marginTop: 0,
-    padding: 25,
-    borderRadius: 16,
+    padding: 30,
+    borderRadius: 20,
     alignItems: 'center',
     elevation: 3,
   },
   healthyCard: {
-    backgroundColor: '#d5f5e3',
+    backgroundColor: '#e8f5e9',
   },
   diseasedCard: {
-    backgroundColor: '#fadbd8',
+    backgroundColor: '#ffebee',
   },
   statusText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 4,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1a3a2a',
+    marginTop: 10,
   },
   diseaseName: {
-    fontSize: 18,
+    fontSize: 19,
     color: '#1a3a2a',
     marginTop: 4,
   },
@@ -260,154 +282,156 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '80%',
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 20,
+    paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
   },
   confidenceLabel: {
-    fontSize: 14,
-    color: '#5a7a6a',
+    fontSize: 15,
+    color: '#78909c',
+    fontWeight: '600',
   },
   confidenceValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#1a3a2a',
   },
   severityCard: {
     backgroundColor: 'white',
-    margin: 20,
-    marginTop: 0,
-    padding: 16,
-    borderRadius: 12,
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 18,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     elevation: 2,
   },
   severityTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#1a3a2a',
     marginLeft: 8,
     flex: 1,
   },
+  severityBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#fff3e0',
+  },
   severityLevel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  severityCritical: {
-    color: '#e74c3c',
-  },
-  severityHigh: {
-    color: '#e67e22',
-  },
-  severityMedium: {
-    color: '#f39c12',
+    fontSize: 15,
+    fontWeight: '700',
   },
   infoCard: {
     backgroundColor: 'white',
-    margin: 20,
-    marginTop: 0,
-    padding: 16,
-    borderRadius: 12,
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 18,
+    borderRadius: 16,
     elevation: 2,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#1a3a2a',
     marginLeft: 8,
   },
   description: {
-    fontSize: 14,
-    color: '#5a7a6a',
-    lineHeight: 20,
+    fontSize: 15,
+    color: '#546e7a',
+    lineHeight: 22,
   },
   listItem: {
     flexDirection: 'row',
-    paddingVertical: 4,
+    paddingVertical: 8,
     alignItems: 'flex-start',
   },
   bullet: {
-    marginRight: 10,
-    marginTop: 6,
+    marginRight: 12,
+    marginTop: 7,
   },
   listText: {
-    fontSize: 14,
-    color: '#5a7a6a',
+    fontSize: 15,
+    color: '#546e7a',
     flex: 1,
+    lineHeight: 22,
   },
   mitigationCard: {
-    backgroundColor: '#eafaf1',
+    backgroundColor: '#e8f5e9',
     borderWidth: 1,
-    borderColor: '#2ecc71',
+    borderColor: '#a5d6a7',
   },
   mitigationBullet: {
-    marginRight: 8,
+    marginRight: 10,
     marginTop: 2,
   },
   mitigationText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#1a3a2a',
     flex: 1,
+    lineHeight: 22,
   },
   buttonContainer: {
-    padding: 20,
-    paddingTop: 0,
-    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    gap: 14,
   },
   button: {
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
+    gap: 10,
   },
   primaryButton: {
     backgroundColor: '#2ecc71',
   },
   primaryButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
+    fontSize: 17,
+    fontWeight: '700',
   },
   secondaryButton: {
     backgroundColor: 'white',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#2ecc71',
   },
   secondaryButtonText: {
     color: '#2ecc71',
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 8,
+    fontSize: 17,
+    fontWeight: '700',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 40,
   },
   errorText: {
-    fontSize: 18,
-    color: '#e74c3c',
-    marginTop: 10,
-    marginBottom: 20,
+    fontSize: 20,
+    color: '#f44336',
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 30,
   },
-  backButton: {
+  goBackButton: {
     backgroundColor: '#2ecc71',
-    padding: 14,
-    borderRadius: 12,
-    paddingHorizontal: 30,
+    paddingHorizontal: 36,
+    paddingVertical: 14,
+    borderRadius: 14,
   },
-  backButtonText: {
+  goBackButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '700',
   },
 });
+

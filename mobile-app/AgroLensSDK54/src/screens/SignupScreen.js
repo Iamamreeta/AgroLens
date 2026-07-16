@@ -28,9 +28,34 @@ export default function SignupScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+  };
+
+  const validatePassword = (password) => {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    return passwordRegex.test(password);
+  };
+
   const handleSignup = async () => {
     if (!name || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill all fields');
+      return;
+    }
+
+    const trimmedEmail = email.trim();
+
+    if (!validateEmail(trimmedEmail)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      Alert.alert(
+        'Weak Password',
+        'Password must be at least 8 characters long, include at least one uppercase letter, one lowercase letter, and one number'
+      );
       return;
     }
 
@@ -45,7 +70,7 @@ export default function SignupScreen({ navigation }) {
     }
 
     setLoading(true);
-    const result = await signUp(name, email, password);
+    const result = await signUp(name, trimmedEmail, password);
     setLoading(false);
 
     if (result.success) {

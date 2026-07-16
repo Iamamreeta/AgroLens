@@ -25,14 +25,26 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
 
+    const trimmedEmail = email.trim();
+
+    if (!validateEmail(trimmedEmail)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      return;
+    }
+
     setLoading(true);
-    const result = await login(email, password);
+    const result = await login(trimmedEmail, password);
     setLoading(false);
 
     if (result.success) {

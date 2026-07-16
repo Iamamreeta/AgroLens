@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -24,7 +25,7 @@ export default function HistoryScreen({ navigation }) {
         setHistory(JSON.parse(saved));
       }
     } catch (error) {
-      console.log('Error loading history:', error);
+      // Silent error for local storage
     }
   };
 
@@ -33,7 +34,7 @@ export default function HistoryScreen({ navigation }) {
       await AsyncStorage.removeItem('predictions');
       setHistory([]);
     } catch (error) {
-      console.log('Error clearing history:', error);
+      // Silent error for local storage
     }
   };
 
@@ -43,29 +44,40 @@ export default function HistoryScreen({ navigation }) {
   };
 
   const renderItem = ({ item }) => (
-    <View style={styles.historyItem}>
+    <TouchableOpacity
+      style={styles.historyItem}
+      onPress={() => navigation.navigate('Results', { result: item })}
+    >
+      <View style={[styles.statusIconContainer, item.status === 'Healthy' ? styles.healthyIconContainer : styles.diseasedIconContainer]}>
+        <Ionicons
+          name={item.status === 'Healthy' ? 'leaf' : 'warning'}
+          size={28}
+          color="white"
+        />
+      </View>
       <View style={styles.historyInfo}>
         <Text style={styles.historyDisease}>{item.disease}</Text>
         <Text style={styles.historyDate}>{formatDate(item.timestamp)}</Text>
       </View>
       <View style={styles.historyRight}>
-        <Text style={[styles.historyStatus, { color: item.status === 'Healthy' ? '#27ae60' : '#e74c3c' }]}>
-          {item.status === 'Healthy' ? '✅' : '⚠️'} {item.status}
+        <Text style={[styles.historyStatus, { color: item.status === 'Healthy' ? '#4caf50' : '#f44336' }]}>
+          {item.status}
         </Text>
-        <Text style={styles.historyConfidence}>{item.confidence.toFixed(1)}%</Text>
+        <Text style={styles.historyConfidence}>{item.confidence}%</Text>
       </View>
-    </View>
+      <Ionicons name="chevron-forward" size={20} color="#ccc" />
+    </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back-outline" size={24} color="#2ecc71" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#1a3a2a" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>📋 History</Text>
+        <Text style={styles.headerTitle}>Scan History</Text>
         {history.length > 0 && (
-          <TouchableOpacity onPress={clearHistory}>
+          <TouchableOpacity onPress={clearHistory} style={styles.clearButton}>
             <Text style={styles.clearText}>Clear</Text>
           </TouchableOpacity>
         )}
@@ -73,15 +85,17 @@ export default function HistoryScreen({ navigation }) {
 
       {history.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="document-text-outline" size={60} color="#95a5a6" />
-          <Text style={styles.emptyText}>No predictions yet</Text>
-          <Text style={styles.emptySubtext}>Scan a leaf to get started</Text>
+          <View style={styles.emptyIconContainer}>
+            <Ionicons name="document-text-outline" size={70} color="#b0bec5" />
+          </View>
+          <Text style={styles.emptyText}>No scans yet</Text>
+          <Text style={styles.emptySubtext}>Start by scanning a tomato leaf</Text>
           <TouchableOpacity
             style={styles.scanButton}
-            onPress={() => navigation.navigate('Home')}  // ✅ Changed from 'Scan' to 'Home'
+            onPress={() => navigation.navigate('Home')}
           >
-            <Ionicons name="leaf-outline" size={22} color="white" />
-            <Text style={styles.scanButtonText}> Go to Home</Text>
+            <Ionicons name="camera-outline" size={24} color="white" />
+            <Text style={styles.scanButtonText}>Scan Now</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -90,6 +104,7 @@ export default function HistoryScreen({ navigation }) {
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </SafeAreaView>
@@ -108,85 +123,115 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 10,
   },
+  backButton: {
+    padding: 4,
+  },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '700',
     color: '#1a3a2a',
   },
+  clearButton: {
+    padding: 4,
+  },
   clearText: {
-    fontSize: 14,
-    color: '#e74c3c',
-    fontWeight: '500',
+    fontSize: 15,
+    color: '#f44336',
+    fontWeight: '600',
   },
   listContainer: {
-    padding: 20,
-    paddingTop: 0,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   historyItem: {
     backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    padding: 18,
+    borderRadius: 16,
+    marginBottom: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     elevation: 2,
+    gap: 14,
+  },
+  statusIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  healthyIconContainer: {
+    backgroundColor: '#4caf50',
+  },
+  diseasedIconContainer: {
+    backgroundColor: '#f44336',
   },
   historyInfo: {
     flex: 1,
   },
   historyDisease: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#1a3a2a',
   },
   historyDate: {
-    fontSize: 12,
-    color: '#95a5a6',
-    marginTop: 2,
+    fontSize: 13,
+    color: '#78909c',
+    marginTop: 4,
   },
   historyRight: {
     alignItems: 'flex-end',
   },
   historyStatus: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   historyConfidence: {
-    fontSize: 12,
-    color: '#95a5a6',
+    fontSize: 19,
+    fontWeight: '800',
+    color: '#1a3a2a',
     marginTop: 2,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#eceff1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 20,
     color: '#1a3a2a',
-    fontWeight: '500',
-    marginTop: 12,
+    fontWeight: '600',
+    marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: '#95a5a6',
-    marginTop: 4,
+    fontSize: 15,
+    color: '#78909c',
+    marginBottom: 30,
   },
   scanButton: {
     backgroundColor: '#2ecc71',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 12,
-    marginTop: 20,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
   scanButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
+    fontSize: 17,
+    fontWeight: '700',
   },
 });
+
