@@ -109,8 +109,10 @@ export default function HomeScreen({ navigation }) {
         method: 'POST',
         body: formData,
         headers: {
-          'Bypass-Tunnel-Reminder': 'true',
-        },
+  'ngrok-skip-browser-warning': 'true',
+  'Bypass-Tunnel-Reminder': 'true',
+  'Accept': 'application/json',
+},
       });
 
       console.log('✅ HTTP status:', response.status);
