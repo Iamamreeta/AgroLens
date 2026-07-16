@@ -8,8 +8,6 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons as Icon } from '@expo/vector-icons';
-// In ResultsScreen.js or any other screen
-const API_URL = 'https://early-lions-deny.loca.lt/api';
 const DISEASE_INFO = {
   'Early_blight': {
     name: 'Early Blight',
@@ -185,7 +183,7 @@ export default function ResultsScreen({ navigation, route }) {
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={[styles.button, styles.primaryButton]}
-            onPress={() => navigation.navigate('Scan')}
+            onPress={() => navigation.navigate('Home')}
           >
             <Icon name="scan-outline" size={22} color="white" />
             <Text style={styles.primaryButtonText}> Scan Another</Text>

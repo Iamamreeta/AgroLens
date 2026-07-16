@@ -15,12 +15,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppLogo from '../../assets/logo.png';
+import API_URL from '../config/api';
+import { updateUserStats } from '../services/AuthService';
 
-// ── Backend URL ──────────────────────────────────────────────
-// Change ONLY this line when your tunnel URL changes.
-const API_URL = 'https://easing-encircle-resigned.ngrok-free.dev/api';
-// ─────────────────────────────────────────────────────────────
+// ── Backend URL from centralized config ─────────────────────────
 
 export default function HomeScreen({ navigation }) {
   const [image, setImage] = useState(null);
@@ -121,8 +121,28 @@ export default function HomeScreen({ navigation }) {
 
       if (json.success) {
         const prediction = json.data;
-        setResult(prediction);
+        // Add id and timestamp for history
+        const predictionWithMeta = {
+          ...prediction,
+          id: Date.now().toString(),
+          timestamp: new Date().toISOString(),
+        };
+        setResult(predictionWithMeta);
         setIsLeaf(prediction.is_leaf !== undefined ? prediction.is_leaf : true);
+
+        if (prediction.is_leaf !== false) {
+          // Save to AsyncStorage history
+          try {
+            const existingHistory = await AsyncStorage.getItem('predictions');
+            const history = existingHistory ? JSON.parse(existingHistory) : [];
+            const updatedHistory = [predictionWithMeta, ...history].slice(0, 50); // Keep last 50
+            await AsyncStorage.setItem('predictions', JSON.stringify(updatedHistory));
+            // Update user stats
+            await updateUserStats(prediction);
+          } catch (error) {
+            console.error('Error saving prediction:', error);
+          }
+        }
 
         if (prediction.is_leaf === false) {
           Alert.alert(

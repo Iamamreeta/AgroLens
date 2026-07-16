@@ -1,11 +1,14 @@
+
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import shutil
 import tempfile
 import sys
+import traceback
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-from predict import TomatoPredictor
+from predict import TomatoPredictor, convert_numpy
 
 app = FastAPI(title="AgroLens ML API")
 
@@ -36,12 +39,18 @@ async def predict(file: UploadFile = File(...)):
         result = predictor.predict(tmp_path)
         return {
             "success": True,
-            "data": result
+            "data": convert_numpy(result)
         }
     except Exception as e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         return {
             "success": False,
-            "error": str(e)
+            "stage": "FastAPI Prediction",
+            "exception": str(e),
+            "traceback": traceback.format_exc(),
+            "filename": filename,
+            "line": exc_tb.tb_lineno
         }
     finally:
         os.unlink(tmp_path)
@@ -49,3 +58,4 @@ async def predict(file: UploadFile = File(...)):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5001)
+

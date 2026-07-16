@@ -1,13 +1,36 @@
+
 import numpy as np
 import cv2
 import pickle
+import os
 from tensorflow.keras.applications import VGG16
 from tensorflow.keras.applications.vgg16 import preprocess_input
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
+def convert_numpy(obj):
+    """Recursively convert numpy types to native Python types"""
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
+    elif isinstance(obj, (np.int32, np.int64)):
+        return int(obj)
+    elif isinstance(obj, (np.float32, np.float64)):
+        return float(obj)
+    elif isinstance(obj, dict):
+        return {k: convert_numpy(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy(item) for item in obj]
+    else:
+        return obj
+
 class TomatoPredictor:
-    def __init__(self, model_path='models/svm_tomato_model.pkl'):
+    def __init__(self, model_path=None):
         print("📥 Loading models...")
+        if model_path is None:
+            # Set default path relative to this file
+            src_dir = os.path.dirname(os.path.abspath(__file__))
+            model_path = os.path.join(src_dir, '..', 'models', 'svm_tomato_model.pkl')
         self.vgg16 = VGG16(weights='imagenet', include_top=False, pooling='avg')
         with open(model_path, 'rb') as f:
             data = pickle.load(f)
@@ -44,7 +67,7 @@ class TomatoPredictor:
         
         # Check if image has significant green (leaf-like)
         is_leaf = green_ratio > 0.15
-        return is_leaf, green_ratio
+        return bool(is_leaf), float(green_ratio)
     
     def predict(self, image_path):
         """Predict disease from image"""
@@ -61,10 +84,10 @@ class TomatoPredictor:
         prob = self.svm.predict_proba(features_scaled)[0]
         
         disease = self.label_encoder.inverse_transform([pred])[0]
-        confidence = np.max(prob) * 100
-        probabilities = {self.classes[i]: prob[i] * 100 for i in range(len(self.classes))}
+        confidence = float(np.max(prob) * 100)
+        probabilities = {self.classes[i]: float(prob[i] * 100) for i in range(len(self.classes))}
         
-        return {
+        result = {
             'disease': disease,
             'confidence': round(confidence, 2),
             'status': 'Healthy' if disease == 'Healthy' else 'Diseased',
@@ -72,3 +95,6 @@ class TomatoPredictor:
             'is_leaf': is_leaf,
             'green_ratio': round(green_ratio * 100, 2)
         }
+        
+        return convert_numpy(result)
+

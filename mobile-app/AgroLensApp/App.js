@@ -17,9 +17,9 @@ import axios from 'axios';
 
 // API Configuration - CHANGE THIS TO YOUR IP
 const API_URL = Platform.select({
-  android: 'http://10.0.2.2:3000/api',
+  android: 'http://192.168.7.176:3000/api',
   ios: 'http://localhost:3000/api',
-  default: 'http://10.0.2.2:3000/api',
+  default: 'http://192.168.7.176:3000api',
 });
 
 const App = () => {
