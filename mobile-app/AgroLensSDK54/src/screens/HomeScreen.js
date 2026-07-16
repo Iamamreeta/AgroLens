@@ -12,13 +12,19 @@ import {
   Platform,
   Animated,
 } from 'react-native';
+const API_URL = 'https://silent-hoops-type.loca.lt/api';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import axios from 'axios';
 import AppLogo from '../../assets/logo.png';
 
-const API_URL = 'http://192.168.7.176:3000/api';
+// ── Backend URL ──────────────────────────────────────────────
+// Change ONLY this line when your tunnel URL or IP changes.
+//   Tunnel (works in Expo Go, https):  'https://xxxx.loca.lt/api'
+//   LAN (needs a dev build for http):  'http://10.252.64.78:3000/api'
+const API_URL = 'https://REPLACE-WITH-TUNNEL-URL.loca.lt/api';
+// ─────────────────────────────────────────────────────────────
+
 export default function HomeScreen({ navigation }) {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -50,14 +56,13 @@ export default function HomeScreen({ navigation }) {
 
   const takePhoto = async () => {
     try {
-      const result = await ImagePicker.launchCameraAsync({
+      const res = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         quality: 0.8,
       });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setImage(result.assets[0]);
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setImage(res.assets[0]);
         setResult(null);
         setIsLeaf(null);
       }
@@ -68,14 +73,13 @@ export default function HomeScreen({ navigation }) {
 
   const pickImage = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
+      const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         quality: 0.8,
       });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setImage(result.assets[0]);
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setImage(res.assets[0]);
         setResult(null);
         setIsLeaf(null);
       }
@@ -98,24 +102,31 @@ export default function HomeScreen({ navigation }) {
       const formData = new FormData();
       formData.append('image', {
         uri: image.uri,
-        type: image.type || 'image/jpeg',
+        type: image.mimeType || image.type || 'image/jpeg',
         name: image.fileName || 'photo.jpg',
       });
 
-      console.log('📤 Sending image to backend...');
-      
-      const response = await axios.post(`${API_URL}/predict`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 30000,
+      console.log('📤 Sending to:', `${API_URL}/predict`);
+
+      const response = await fetch(`${API_URL}/predict`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          Accept: 'application/json',
+          // localtunnel needs this to skip its browser-warning page
+          'Bypass-Tunnel-Reminder': 'true',
+        },
       });
 
-      console.log('✅ Response:', response.data);
+      console.log('✅ HTTP status:', response.status);
+      const json = await response.json();
+      console.log('✅ Response:', JSON.stringify(json));
 
-      if (response.data.success) {
-        const prediction = response.data.data;
+      if (json.success) {
+        const prediction = json.data;
         setResult(prediction);
         setIsLeaf(prediction.is_leaf !== undefined ? prediction.is_leaf : true);
-        
+
         if (prediction.is_leaf === false) {
           Alert.alert(
             '⚠️ Not a Tomato Leaf!',
@@ -123,20 +134,15 @@ export default function HomeScreen({ navigation }) {
             [{ text: 'OK' }]
           );
         }
-        
-        if (prediction.status === 'Healthy') {
-          setPlantHealth(95);
-        } else {
-          setPlantHealth(65);
-        }
+        setPlantHealth(prediction.status === 'Healthy' ? 95 : 65);
       } else {
-        Alert.alert('Error', response.data.error || 'Prediction failed');
+        Alert.alert('Error', json.error || 'Prediction failed');
       }
     } catch (error) {
       console.error('❌ Error:', error.message);
       Alert.alert(
         'Connection Error',
-        'Could not connect to backend.\n\nMake sure:\n1. Backend is running on port 3000\n2. FastAPI is running on port 5001'
+        `Could not reach the server.\n\n${error.message}\n\nCheck:\n1. Backend running (port 3000)\n2. FastAPI running (port 5001)\n3. Tunnel running & URL correct at top of HomeScreen.js`
       );
     } finally {
       setLoading(false);
@@ -254,13 +260,13 @@ export default function HomeScreen({ navigation }) {
               end={{ x: 1, y: 0 }}
             >
               <View style={styles.resultHeader}>
-                <Ionicons 
+                <Ionicons
                   name={
                     !result.is_leaf ? 'warning-outline' :
                     result.status === 'Healthy' ? 'checkmark-circle' : 'alert-circle'
-                  } 
-                  size={32} 
-                  color="white" 
+                  }
+                  size={32}
+                  color="white"
                 />
                 <Text style={styles.resultHeaderText}>
                   {!result.is_leaf ? '⚠️ Not a Leaf' :
@@ -289,14 +295,14 @@ export default function HomeScreen({ navigation }) {
                     <Text style={styles.resultLabel}>Confidence</Text>
                     <View style={styles.confidenceContainer}>
                       <View style={styles.confidenceBar}>
-                        <View 
+                        <View
                           style={[
-                            styles.confidenceFill, 
-                            { 
+                            styles.confidenceFill,
+                            {
                               width: `${result.confidence}%`,
                               backgroundColor: result.confidence > 70 ? '#2ecc71' : '#f39c12'
                             }
-                          ]} 
+                          ]}
                         />
                       </View>
                       <Text style={styles.confidenceText}>{result.confidence}%</Text>
@@ -307,7 +313,7 @@ export default function HomeScreen({ navigation }) {
 
               <View style={styles.resultActions}>
                 {result.is_leaf && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.viewDetailsBtn}
                     onPress={() => navigation.navigate('Results', { result })}
                   >
@@ -322,7 +328,7 @@ export default function HomeScreen({ navigation }) {
                   </TouchableOpacity>
                 )}
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.closeResultBtn}
                   onPress={() => {
                     setResult(null);
@@ -429,7 +435,7 @@ const styles = StyleSheet.create({
   detectBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
   proTip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', padding: 10, borderRadius: 10, marginTop: 15, gap: 8 },
   proTipText: { flex: 1, fontSize: 12, color: '#8aaa9a', lineHeight: 16 },
-  
+
   resultCard: { margin: 20, marginTop: 0, borderRadius: 16, overflow: 'hidden', elevation: 5 },
   resultHeaderGradient: { padding: 16 },
   resultHeader: { flexDirection: 'row', alignItems: 'center' },
@@ -438,11 +444,11 @@ const styles = StyleSheet.create({
   resultRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f0f4f0' },
   resultLabel: { fontSize: 14, color: '#5a7a6a' },
   resultDisease: { fontSize: 16, fontWeight: 'bold', color: '#1a3a2a' },
-  
+
   notLeafContainer: { alignItems: 'center', paddingVertical: 16 },
   notLeafTitle: { fontSize: 20, fontWeight: 'bold', color: '#e67e22', marginTop: 10 },
   notLeafSub: { fontSize: 14, color: '#5a7a6a', textAlign: 'center', marginTop: 4 },
-  
+
   confidenceContainer: { flexDirection: 'row', alignItems: 'center', flex: 1, marginLeft: 20 },
   confidenceBar: { flex: 1, height: 6, backgroundColor: '#ecf0ec', borderRadius: 3, overflow: 'hidden', marginRight: 10 },
   confidenceFill: { height: '100%', borderRadius: 3 },
@@ -453,7 +459,7 @@ const styles = StyleSheet.create({
   viewDetailsText: { color: 'white', fontSize: 14, fontWeight: '600' },
   closeResultBtn: { flex: 1, backgroundColor: '#ecf0ec', borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   closeResultText: { color: '#5a7a6a', fontSize: 14, fontWeight: '500' },
-  
+
   healthCard: { backgroundColor: 'white', margin: 20, marginTop: 0, padding: 20, borderRadius: 16, elevation: 2 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1a3a2a', marginLeft: 8 },

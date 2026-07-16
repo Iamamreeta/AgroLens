@@ -8,7 +8,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons as Icon } from '@expo/vector-icons';
-
+// In ResultsScreen.js or any other screen
+const API_URL = 'https://early-lions-deny.loca.lt/api';
 const DISEASE_INFO = {
   'Early_blight': {
     name: 'Early Blight',

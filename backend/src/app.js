@@ -4,7 +4,7 @@ const multer = require('multer');
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
-
+const YOUR_IP = '10.252.64.78';
 const app = express();
 const PORT = 3000;
 
@@ -51,11 +51,7 @@ app.post('/api/predict', upload.single('image'), async (req, res) => {
         console.log('✅ Prediction received');
         fs.unlinkSync(filePath);
 
-        res.json({
-            success: true,
-            data: response.data
-        });
-
+      res.json(response.data);     // ← FastAPI already returns {success, data}
     } catch (error) {
         console.error('❌ Error:', error.message);
         
@@ -72,7 +68,7 @@ app.post('/api/predict', upload.single('image'), async (req, res) => {
 
 console.log('🚀 Starting AgroLens Backend...');
 
-app.listen(PORT, () => {
-    console.log(`✅ Backend running on http://localhost:${PORT}`);
-    console.log(`📡 Health check: http://localhost:${PORT}/health`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Backend running on http://0.0.0.0:${PORT}`);
+console.log(`📱 Phone should use: http://10.252.64.78:3000`);
 });
