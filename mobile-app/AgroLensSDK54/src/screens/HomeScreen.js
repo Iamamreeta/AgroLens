@@ -12,17 +12,14 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-const API_URL = 'https://silent-hoops-type.loca.lt/api';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import AppLogo from '../../assets/logo.png';
 
 // ── Backend URL ──────────────────────────────────────────────
-// Change ONLY this line when your tunnel URL or IP changes.
-//   Tunnel (works in Expo Go, https):  'https://xxxx.loca.lt/api'
-//   LAN (needs a dev build for http):  'http://10.252.64.78:3000/api'
-const API_URL = 'https://REPLACE-WITH-TUNNEL-URL.loca.lt/api';
+// Change ONLY this line when your tunnel URL changes.
+const API_URL = 'https://easing-encircle-resigned.ngrok-free.dev/api';
 // ─────────────────────────────────────────────────────────────
 
 export default function HomeScreen({ navigation }) {
@@ -112,8 +109,6 @@ export default function HomeScreen({ navigation }) {
         method: 'POST',
         body: formData,
         headers: {
-          Accept: 'application/json',
-          // localtunnel needs this to skip its browser-warning page
           'Bypass-Tunnel-Reminder': 'true',
         },
       });
@@ -142,7 +137,7 @@ export default function HomeScreen({ navigation }) {
       console.error('❌ Error:', error.message);
       Alert.alert(
         'Connection Error',
-        `Could not reach the server.\n\n${error.message}\n\nCheck:\n1. Backend running (port 3000)\n2. FastAPI running (port 5001)\n3. Tunnel running & URL correct at top of HomeScreen.js`
+        `Could not reach the server.\n\n${error.message}\n\nCheck:\n1. Backend running (port 3000)\n2. FastAPI running (port 5001)\n3. Tunnel running & URL correct`
       );
     } finally {
       setLoading(false);
