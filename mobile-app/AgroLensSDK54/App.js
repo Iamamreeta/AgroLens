@@ -12,7 +12,9 @@ import HomeScreen from './src/screens/HomeScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
-
+// src/config/api.js
+export const API_BASE_URL = 'http://localhost:3000/api';  // Local
+// export const API_BASE_URL = 'https://agrolens-api.onrender.com/api';  // Production
 const Stack = createStackNavigator();
 
 export default function App() {

@@ -86,7 +86,9 @@ const DISEASE_INFO = {
 };
 
 export default function ResultsScreen({ navigation, route }) {
+  console.log('📄 ResultsScreen received route params:', route.params);
   const { result } = route.params || { result: null };
+  console.log('📄 Result data:', result);
 
   if (result) {
     const info = DISEASE_INFO[result.disease] || DISEASE_INFO['Healthy'];

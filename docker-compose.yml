@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: agrolens-postgres
+    environment:
+      POSTGRES_DB: agrolens
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - agrolens-network
+
+  backend:
+    build: ./backend
+    container_name: agrolens-backend
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/agrolens
+      JWT_SECRET: dev-secret-key
+      NODE_ENV: development
+      ML_API_URL: http://ml-service:5001
+    depends_on:
+      - postgres
+    networks:
+      - agrolens-network
+
+  ml-service:
+    build: ./ml-model
+    container_name: agrolens-ml
+    ports:
+      - "5001:5001"
+    environment:
+      PYTHON_VERSION: 3.11
+    networks:
+      - agrolens-network
+
+volumes:
+  postgres_data:
+
+networks:
+  agrolens-network:
+    driver: bridge

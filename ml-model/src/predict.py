@@ -11,16 +11,18 @@ def convert_numpy(obj):
     """Recursively convert numpy types to native Python types"""
     if isinstance(obj, np.ndarray):
         return obj.tolist()
-    elif isinstance(obj, np.bool_):
+    elif isinstance(obj, (np.bool_, np.bool)):
         return bool(obj)
-    elif isinstance(obj, (np.int32, np.int64)):
+    elif isinstance(obj, (np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64, np.intc, np.intp)):
         return int(obj)
-    elif isinstance(obj, (np.float32, np.float64)):
+    elif isinstance(obj, (np.float16, np.float32, np.float64, np.float128, np.float_)):
         return float(obj)
     elif isinstance(obj, dict):
         return {k: convert_numpy(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
+    elif isinstance(obj, (list, tuple, set)):
         return [convert_numpy(item) for item in obj]
+    elif hasattr(obj, 'item') and callable(obj.item):
+        return obj.item()
     else:
         return obj
 
@@ -83,17 +85,17 @@ class TomatoPredictor:
         pred = self.svm.predict(features_scaled)[0]
         prob = self.svm.predict_proba(features_scaled)[0]
         
-        disease = self.label_encoder.inverse_transform([pred])[0]
+        disease = str(self.label_encoder.inverse_transform([pred])[0])
         confidence = float(np.max(prob) * 100)
-        probabilities = {self.classes[i]: float(prob[i] * 100) for i in range(len(self.classes))}
+        probabilities = {str(self.classes[i]): float(prob[i] * 100) for i in range(len(self.classes))}
         
         result = {
             'disease': disease,
             'confidence': round(confidence, 2),
             'status': 'Healthy' if disease == 'Healthy' else 'Diseased',
             'probabilities': probabilities,
-            'is_leaf': is_leaf,
-            'green_ratio': round(green_ratio * 100, 2)
+            'is_leaf': bool(is_leaf),
+            'green_ratio': round(float(green_ratio) * 100, 2)
         }
         
         return convert_numpy(result)

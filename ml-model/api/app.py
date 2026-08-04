@@ -27,7 +27,7 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "classes": predictor.classes, "model_loaded": True}
+    return {"status": "healthy", "classes": convert_numpy(predictor.classes), "model_loaded": True}
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):

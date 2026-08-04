@@ -118,27 +118,53 @@ export default function HomeScreen({ navigation }) {
     setResult(null);
 
     try {
+      console.log('🔍 Starting prediction...');
+      console.log('📷 Image data:', image);
+
       const formData = new FormData();
+      const imageUri = image.uri;
+      const imageType = image.mimeType || image.type || 'image/jpeg';
+      const imageName = image.fileName || 'photo.jpg';
+
       formData.append('image', {
-        uri: image.uri,
-        type: image.mimeType || image.type || 'image/jpeg',
-        name: image.fileName || 'photo.jpg',
+        uri: imageUri,
+        type: imageType,
+        name: imageName,
       });
+
+      console.log('📦 FormData created');
+      console.log('🌐 Sending request to:', `${API_URL}/predict`);
 
       const response = await fetch(`${API_URL}/predict`, {
         method: 'POST',
         body: formData,
         headers: {
-  'ngrok-skip-browser-warning': 'true',
-  'Bypass-Tunnel-Reminder': 'true',
-  'Accept': 'application/json',
-},
+          'ngrok-skip-browser-warning': 'true',
+          'Bypass-Tunnel-Reminder': 'true',
+          'Accept': 'application/json',
+        },
       });
 
-      const json = await response.json();
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
+
+      const responseText = await response.text();
+      console.log('📝 Response text:', responseText);
+
+      let json;
+      try {
+        json = JSON.parse(responseText);
+        console.log('✅ Parsed JSON:', json);
+      } catch (parseError) {
+        console.error('❌ JSON parse error:', parseError);
+        console.error('❌ Parse error message:', parseError.message);
+        console.error('❌ Parse error stack:', parseError.stack);
+        throw new Error(`Failed to parse server response: ${responseText}`);
+      }
 
       if (json.success) {
         const prediction = json.data;
+        console.log('🔢 Prediction data:', prediction);
         const predictionWithMeta = {
           ...prediction,
           id: Date.now().toString(),
@@ -149,13 +175,18 @@ export default function HomeScreen({ navigation }) {
 
         if (prediction.is_leaf !== false) {
           try {
+            console.log('💾 Saving to history...');
             const existingHistory = await AsyncStorage.getItem('predictions');
             const history = existingHistory ? JSON.parse(existingHistory) : [];
             const updatedHistory = [predictionWithMeta, ...history].slice(0, 50);
             await AsyncStorage.setItem('predictions', JSON.stringify(updatedHistory));
+            console.log('📊 Updating user stats...');
             await updateUserStats(prediction);
+            console.log('✅ History and stats saved');
           } catch (error) {
-            // Silent error for local storage
+            console.error('❌ Error saving history/stats:', error);
+            console.error('❌ Error message:', error.message);
+            console.error('❌ Error stack:', error.stack);
           }
         }
 
@@ -167,12 +198,16 @@ export default function HomeScreen({ navigation }) {
           );
         }
       } else {
+        console.error('❌ Prediction failed (json.success = false):', json);
         Alert.alert('Error', json.error || 'Prediction failed');
       }
     } catch (error) {
+      console.error('❌ Error in detectDisease:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
       Alert.alert(
-        'Connection Error',
-        `Could not reach the server.\n\nPlease check if backend and FastAPI are running.`
+        'Error',
+        `Something went wrong.\n\n${error.message}`
       );
     } finally {
       setLoading(false);

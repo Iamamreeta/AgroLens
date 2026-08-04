@@ -25,7 +25,9 @@ export default function HistoryScreen({ navigation }) {
         setHistory(JSON.parse(saved));
       }
     } catch (error) {
-      // Silent error for local storage
+      console.error('❌ Error loading history:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
     }
   };
 
@@ -34,7 +36,9 @@ export default function HistoryScreen({ navigation }) {
       await AsyncStorage.removeItem('predictions');
       setHistory([]);
     } catch (error) {
-      // Silent error for local storage
+      console.error('❌ Error clearing history:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
     }
   };
 

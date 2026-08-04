@@ -32,7 +32,9 @@ export default function ProfileScreen({ navigation }) {
         setScanCount(JSON.parse(saved).length);
       }
     } catch (error) {
-      // Silent error for local storage
+      console.error('❌ Error loading profile data:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
     }
   };
 

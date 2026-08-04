@@ -1,174 +1,245 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 // ============================================
-// 📱 SIMPLE LOCAL AUTHENTICATION
+// 🌐 BACKEND API URL
 // ============================================
 
-const USERS_KEY = '@agrolens_users';
-const CURRENT_USER_KEY = '@agrolens_current_user';
+const API_URL = 'http://localhost:3000/api';  // Local dev
+// const API_URL = 'https://agrolens-api.onrender.com/api';  // Production
 
 // ============================================
-// 📂 PRIVATE HELPER FUNCTIONS
-// ============================================
-
-// Get all users
-const getUsers = async () => {
-  try {
-    const usersJson = await AsyncStorage.getItem(USERS_KEY);
-    return usersJson ? JSON.parse(usersJson) : [];
-  } catch (error) {
-    console.error('Error getting users:', error);
-    return [];
-  }
-};
-
-// Save users
-const saveUsers = async (users) => {
-  try {
-    await AsyncStorage.setItem(USERS_KEY, JSON.stringify(users));
-  } catch (error) {
-    console.error('Error saving users:', error);
-  }
-};
-
-// ============================================
-// 🔐 AUTH FUNCTIONS
+// 🔐 AUTHENTICATION FUNCTIONS (PostgreSQL Only)
 // ============================================
 
 /**
- * Sign Up - Create a new user account
- * @param {string} name - User's full name
- * @param {string} email - User's email
- * @param {string} password - User's password
- * @returns {Object} { success, user, error }
+ * Sign Up - Create user in PostgreSQL
  */
 export const signUp = async (name, email, password) => {
-  try {
-    const users = await getUsers();
-    
-    // Check if user already exists
-    if (users.find(u => u.email === email)) {
-      return { success: false, error: 'User already exists with this email' };
+    try {
+        const response = await fetch(`${API_URL}/auth/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Store JWT token securely
+            await SecureStore.setItemAsync('auth_token', data.token);
+            return { success: true, user: data.user };
+        } else {
+            return { success: false, error: data.error || 'Signup failed' };
+        }
+    } catch (error) {
+        console.error('Signup error:', error);
+        return { success: false, error: error.message };
     }
-    
-    // Create new user
-    const newUser = {
-      id: Date.now().toString(),
-      name: name,
-      email: email,
-      password: password,
-      createdAt: new Date().toISOString(),
-      totalScans: 0,
-      healthyPlants: 0,
-      diseasedPlants: 0
-    };
-    
-    users.push(newUser);
-    await saveUsers(users);
-    
-    // Auto login after signup
-    await AsyncStorage.setItem(CURRENT_USER_KEY, JSON.stringify(newUser));
-    
-    return { success: true, user: newUser };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
 };
 
 /**
- * Login - Authenticate user
- * @param {string} email - User's email
- * @param {string} password - User's password
- * @returns {Object} { success, user, error }
+ * Login - Authenticate via PostgreSQL
  */
 export const login = async (email, password) => {
-  try {
-    const users = await getUsers();
-    const user = users.find(u => u.email === email && u.password === password);
-    
-    if (!user) {
-      return { success: false, error: 'Invalid email or password' };
+    try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Store JWT token securely
+            await SecureStore.setItemAsync('auth_token', data.token);
+            return { success: true, user: data.user };
+        } else {
+            return { success: false, error: data.error || 'Invalid credentials' };
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        return { success: false, error: error.message };
     }
-    
-    await AsyncStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-    return { success: true, user };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
 };
 
 /**
- * Logout - Sign out current user
- * @returns {Object} { success, error }
+ * Logout - Remove JWT token
  */
 export const logout = async () => {
-  try {
-    await AsyncStorage.removeItem(CURRENT_USER_KEY);
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+    try {
+        await SecureStore.deleteItemAsync('auth_token');
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
 };
 
 /**
- * Get current logged in user
- * @returns {Object|null} User object or null
+ * Get Current User - From PostgreSQL via JWT
  */
 export const getCurrentUser = async () => {
-  try {
-    const userJson = await AsyncStorage.getItem(CURRENT_USER_KEY);
-    return userJson ? JSON.parse(userJson) : null;
-  } catch (error) {
-    return null;
-  }
+    try {
+        const token = await SecureStore.getItemAsync('auth_token');
+        if (!token) return null;
+
+        const response = await fetch(`${API_URL}/auth/me`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return data.user || data;
+        } else {
+            // Token invalid - clear it
+            await SecureStore.deleteItemAsync('auth_token');
+            return null;
+        }
+    } catch (error) {
+        console.error('Get user error:', error);
+        return null;
+    }
 };
 
 /**
  * Check if user is logged in
- * @returns {boolean} True if logged in
  */
 export const isLoggedIn = async () => {
-  const user = await getCurrentUser();
-  return user !== null;
+    const user = await getCurrentUser();
+    return user !== null;
 };
 
 /**
- * Update user stats after a scan
- * @param {Object} prediction - Prediction result
- * @returns {Object} { success, user, error }
+ * Save prediction to PostgreSQL
  */
-export const updateUserStats = async (prediction) => {
-  try {
-    const currentUser = await getCurrentUser();
-    if (!currentUser) return { success: false, error: 'No user logged in' };
-    
-    const users = await getUsers();
-    const userIndex = users.findIndex(u => u.id === currentUser.id);
-    
-    if (userIndex === -1) return { success: false, error: 'User not found' };
-    
-    const isHealthy = prediction.status === 'Healthy';
-    users[userIndex].totalScans = (users[userIndex].totalScans || 0) + 1;
-    users[userIndex].healthyPlants = (users[userIndex].healthyPlants || 0) + (isHealthy ? 1 : 0);
-    users[userIndex].diseasedPlants = (users[userIndex].diseasedPlants || 0) + (isHealthy ? 0 : 1);
-    
-    await saveUsers(users);
-    await AsyncStorage.setItem(CURRENT_USER_KEY, JSON.stringify(users[userIndex]));
-    
-    return { success: true, user: users[userIndex] };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+export const savePrediction = async (prediction) => {
+    try {
+        const token = await SecureStore.getItemAsync('auth_token');
+        if (!token) {
+            return { success: false, error: 'Not logged in' };
+        }
+
+        const response = await fetch(`${API_URL}/predictions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(prediction)
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, prediction: data.prediction || data };
+        } else {
+            const error = await response.json();
+            return { success: false, error: error.error || 'Failed to save' };
+        }
+    } catch (error) {
+        console.error('Save prediction error:', error);
+        return { success: false, error: error.message };
+    }
 };
 
 /**
- * Clear all user data (for testing)
+ * Get all predictions from PostgreSQL
  */
+export const getPredictions = async () => {
+    try {
+        const token = await SecureStore.getItemAsync('auth_token');
+        if (!token) {
+            return { success: false, error: 'Not logged in', predictions: [] };
+        }
+
+        const response = await fetch(`${API_URL}/predictions`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { 
+                success: true, 
+                predictions: data.predictions || data 
+            };
+        } else {
+            return { success: false, error: 'Failed to fetch', predictions: [] };
+        }
+    } catch (error) {
+        console.error('Get predictions error:', error);
+        return { success: false, error: error.message, predictions: [] };
+    }
+};
+
+/**
+ * Delete prediction from PostgreSQL
+ */
+export const deletePrediction = async (predictionId) => {
+    try {
+        const token = await SecureStore.getItemAsync('auth_token');
+        if (!token) {
+            return { success: false, error: 'Not logged in' };
+        }
+
+        const response = await fetch(`${API_URL}/predictions/${predictionId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            return { success: true };
+        } else {
+            const error = await response.json();
+            return { success: false, error: error.error || 'Failed to delete' };
+        }
+    } catch (error) {
+        console.error('Delete prediction error:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Get user statistics from PostgreSQL
+ */
+export const getUserStats = async () => {
+    try {
+        const token = await SecureStore.getItemAsync('auth_token');
+        if (!token) {
+            return { success: false, error: 'Not logged in' };
+        }
+
+        const response = await fetch(`${API_URL}/users/stats`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, stats: data };
+        } else {
+            return { success: false, error: 'Failed to fetch stats' };
+        }
+    } catch (error) {
+        console.error('Get stats error:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// ============================================
+// 🧹 Clear Data (for testing)
+// ============================================
+
 export const clearAllData = async () => {
-  try {
-    await AsyncStorage.clear();
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+    try {
+        await SecureStore.deleteItemAsync('auth_token');
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
 };
