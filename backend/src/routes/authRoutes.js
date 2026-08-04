@@ -1,12 +1,33 @@
 const express = require('express');
-const { validateSignup, validateLogin } = require('../validators/authValidator');
+const {
+  validateSignup,
+  validateLogin,
+  validateChangePassword,
+} = require('../validators/authValidator');
 const { authLimiter } = require('../middleware/rateLimiter');
-const { stubSignup, stubLogin, stubProfile } = require('../controllers/predictionController');
+const { protect } = require('../middleware/authMiddleware');
+const {
+  signup,
+  login,
+  logout,
+  me,
+  changePassword,
+  deleteAccount,
+  refresh,
+  getUserStats,
+} = require('../controllers/authController');
 
 const router = express.Router();
 
-router.post('/signup', authLimiter, validateSignup, stubSignup);
-router.post('/login', authLimiter, validateLogin, stubLogin);
-router.get('/profile', stubProfile);
+router.post('/signup', authLimiter, validateSignup, signup);
+router.post('/login', authLimiter, validateLogin, login);
+router.post('/logout', logout);
+router.post('/refresh', refresh);
+
+router.get('/me', protect, me);
+router.post('/change-password', protect, validateChangePassword, changePassword);
+router.delete('/account', protect, deleteAccount);
+
+router.get('/stats', protect, getUserStats);
 
 module.exports = router;

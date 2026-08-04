@@ -1,4 +1,5 @@
 const Joi = require('joi');
+const AppError = require('../utils/AppError');
 
 const loginSchema = Joi.object({
   email: Joi.string().trim().email().lowercase().required().messages({
@@ -59,14 +60,10 @@ const changePasswordSchema = Joi.object({
 });
 
 const validate = (schema) => (req, _res, next) => {
-  const { error } = schema.validate(req.body, { abortEarly: false });
+  const { error } = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
   if (!error) return next();
-  const errors = error.details.map((d) => d.message);
-  const err = new Error(errors.join(' '));
-  err.statusCode = 400;
-  err.status = 'fail';
-  err.isOperational = true;
-  return next(err);
+  const messages = error.details.map((d) => d.message);
+  return next(new AppError(messages.join(' '), 400));
 };
 
 module.exports = {

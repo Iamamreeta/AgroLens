@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { getCurrentUser } from './src/services/AuthService';
+import { getCurrentUser, getApiBaseUrl } from './src/services/AuthService';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
@@ -12,32 +13,45 @@ import HomeScreen from './src/screens/HomeScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
-// src/config/api.js
-export const API_BASE_URL = 'http://localhost:3000/api';  // Local
-// export const API_BASE_URL = 'https://agrolens-api.onrender.com/api';  // Production
+
 const Stack = createStackNavigator();
+
+function SplashScreen() {
+  return (
+    <View style={styles.splash}>
+      <Text style={styles.splashTitle}>🌿 AgroLens</Text>
+      <Text style={styles.splashSub}>Preparing your tomato health assistant...</Text>
+      <ActivityIndicator size="large" color="#2e7d32" style={{ marginTop: 24 }} />
+    </View>
+  );
+}
 
 export default function App() {
   const [initialRoute, setInitialRoute] = useState('Onboarding');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAuth();
+    const init = async () => {
+      try {
+        getApiBaseUrl().catch(() => null);
+        const user = await getCurrentUser();
+        setInitialRoute(user ? 'Home' : 'Onboarding');
+      } catch (error) {
+        console.error('App init error:', error);
+        setInitialRoute('Onboarding');
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
-  const checkAuth = async () => {
-    try {
-      const user = await getCurrentUser();
-      setInitialRoute(user ? 'Home' : 'Onboarding');
-    } catch (error) {
-      console.error('Auth error:', error);
-      setInitialRoute('Onboarding');
-    }
-    setLoading(false);
-  };
-
   if (loading) {
-    return null;
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SplashScreen />
+      </GestureHandlerRootView>
+    );
   }
 
   return (
@@ -64,3 +78,24 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    backgroundColor: '#f5f9f5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  splashTitle: {
+    fontSize: 40,
+    fontWeight: '800',
+    color: '#2e7d32',
+    marginBottom: 12,
+    letterSpacing: 0.3,
+  },
+  splashSub: {
+    fontSize: 16,
+    color: '#558b2f',
+  },
+});

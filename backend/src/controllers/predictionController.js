@@ -2,26 +2,24 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/AppError');
 const mlService = require('../services/mlService');
 const { deleteFile } = require('../utils/helpers');
-const authService = require('../services/authService');
+const predictionRepo = require('../repositories/predictionRepository');
 
 const predict = catchAsync(async (req, res, next) => {
   let filePath = null;
   try {
     mlService.validateImage(req.file);
     filePath = req.file?.path;
+    const userId = req.user?.id || null;
 
-    const currentUser = await authService.getCurrentUserFromToken(req);
-    const userId = currentUser?.id || null;
-
-    console.log('📤 Sending to FastAPI on port 5001...');
+    console.log(`[Predict] userId=${userId || 'anonymous'} file=${req.file?.originalname || 'unknown'} size=${req.file?.size || 0}`);
     let mlResponse;
     try {
       mlResponse = await mlService.callFastAPI(filePath);
     } catch (axiosErr) {
-      console.error('❌ FastAPI call failed:', axiosErr.message);
+      console.error('[Predict] FastAPI call failed:', axiosErr.message);
       if (axiosErr.response) {
-        console.error('❌ FastAPI status:', axiosErr.response.status);
-        console.error('❌ FastAPI data:', axiosErr.response.data);
+        console.error('[Predict] FastAPI status:', axiosErr.response.status);
+        console.error('[Predict] FastAPI data:', JSON.stringify(axiosErr.response.data).slice(0, 600));
       }
       if (filePath) deleteFile(filePath);
       return res.status(502).json({
@@ -29,12 +27,12 @@ const predict = catchAsync(async (req, res, next) => {
         error:
           axiosErr.response?.data?.error ||
           axiosErr.response?.data?.exception ||
-          'Prediction service is unavailable. Please ensure FastAPI ML server is running on port 5001.',
+          axiosErr.response?.data?.message ||
+          'Prediction service is unavailable. Please ensure the FastAPI ML server is running.',
         details: process.env.NODE_ENV === 'development' ? axiosErr.message : undefined,
       });
     }
 
-    console.log('✅ Prediction received from FastAPI');
     if (filePath) deleteFile(filePath);
 
     if (!mlResponse.success || !mlResponse.data) {
@@ -66,13 +64,13 @@ const predict = catchAsync(async (req, res, next) => {
       prevention: enriched.prevention || null,
       prediction_date: savedPrediction.prediction_date,
       prediction_time: savedPrediction.prediction_time,
-      timestamp: savedPrediction.created_at || new Date().toISOString(),
+      timestamp: savedPrediction.created_at || savedPrediction.createdAt || new Date().toISOString(),
       saved: true,
       image_url: persistedImagePath,
       user_id: userId,
     };
 
-    return res.json({
+    return res.status(200).json({
       success: true,
       data: combined,
     });
@@ -83,44 +81,62 @@ const predict = catchAsync(async (req, res, next) => {
 });
 
 const getHistory = catchAsync(async (req, res) => {
-  const currentUser = await authService.getCurrentUserFromToken(req);
-  const userId = currentUser?.id;
-  let rows = [];
-  let count = 0;
-  if (userId) {
-    const { search, status, sortBy, sortDir, limit, offset } = req.query;
-    const result = await require('../repositories/predictionRepository').findAllByUserId(userId, {
-      search,
-      status,
-      sortBy: sortBy || 'created_at',
-      sortDir: sortDir || 'DESC',
-      limit: limit ? parseInt(limit, 10) : 50,
-      offset: offset ? parseInt(offset, 10) : 0,
-    });
-    rows = result.rows || [];
-    count = result.count || 0;
-  }
-  res.json({
+  if (!req.user) throw new AppError('Not authenticated', 401);
+  const userId = req.user.id;
+  const { search, status, sortBy, sortDir, limit, offset } = req.query;
+  const result = await predictionRepo.findAllByUserId(userId, {
+    search,
+    status,
+    sortBy: sortBy || 'created_at',
+    sortDir: sortDir || 'DESC',
+    limit: limit ? Math.min(parseInt(limit, 10) || 50, 200) : 50,
+    offset: offset ? parseInt(offset, 10) : 0,
+  });
+  const rows = (result.rows || []).map((r) => r.toJSON ? r.toJSON() : r);
+  res.status(200).json({
     success: true,
-    count,
+    count: result.count || rows.length,
     history: rows,
   });
 });
 
-const stubSignup = catchAsync(async (_req, _res) => {
-  throw new AppError('Signup endpoint ready. Module 2 will implement JWT auth.', 501);
+const getHistoryById = catchAsync(async (req, res) => {
+  if (!req.user) throw new AppError('Not authenticated', 401);
+  const { id } = req.params;
+  const item = await predictionRepo.findByIdAndUserId(id, req.user.id);
+  if (!item) throw new AppError('Prediction not found', 404);
+  const plain = item.toJSON ? item.toJSON() : item;
+  res.status(200).json({
+    success: true,
+    data: plain,
+  });
 });
-const stubLogin = catchAsync(async (_req, _res) => {
-  throw new AppError('Login endpoint ready. Module 2 will implement JWT auth.', 501);
+
+const deleteHistoryById = catchAsync(async (req, res) => {
+  if (!req.user) throw new AppError('Not authenticated', 401);
+  const { id } = req.params;
+  const deleted = await predictionRepo.deleteByIdAndUserId(id, req.user.id);
+  if (!deleted) throw new AppError('Prediction not found or already deleted', 404);
+  res.status(200).json({
+    success: true,
+    message: 'Prediction deleted',
+  });
 });
-const stubProfile = catchAsync(async (_req, _res) => {
-  throw new AppError('Profile endpoint ready. Module 2 will implement JWT auth.', 501);
+
+const deleteHistoryAll = catchAsync(async (req, res) => {
+  if (!req.user) throw new AppError('Not authenticated', 401);
+  const deleted = await predictionRepo.deleteAllByUserId(req.user.id) || 0;
+  res.status(200).json({
+    success: true,
+    message: `Deleted ${deleted} history records`,
+    deleted: typeof deleted === 'number' ? deleted : 0,
+  });
 });
 
 module.exports = {
   predict,
   getHistory,
-  stubSignup,
-  stubLogin,
-  stubProfile,
+  getHistoryById,
+  deleteHistoryById,
+  deleteHistoryAll,
 };
