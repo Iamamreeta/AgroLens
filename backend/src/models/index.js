@@ -11,13 +11,7 @@ let sequelize;
 
 const initializeDatabase = async () => {
   try {
-    console.log('🔍 Connecting to database with config:', {
-      database: config.database,
-      username: config.username,
-      host: config.host,
-      port: config.port,
-      ssl: !!config.dialectOptions?.ssl
-    });
+    console.log('🔍 Connecting to database...');
 
     if (config.use_env_variable) {
       sequelize = new Sequelize(process.env[config.use_env_variable], config);
@@ -31,9 +25,9 @@ const initializeDatabase = async () => {
     }
 
     await sequelize.authenticate();
-    console.log('✅ PostgreSQL connection established successfully');
+    console.log('✅ PostgreSQL connected!');
 
-    // Load all model files
+    // Load models
     const modelFiles = fs
       .readdirSync(__dirname)
       .filter((file) => {
@@ -45,13 +39,13 @@ const initializeDatabase = async () => {
         );
       });
 
-    console.log('📦 Loading models:', modelFiles);
+    console.log('📦 Models found:', modelFiles);
 
     for (const file of modelFiles) {
       const modelDef = require(path.join(__dirname, file));
       const model = modelDef(sequelize, Sequelize.DataTypes);
       db[model.name] = model;
-      console.log(`✅ Model loaded: ${model.name}`);
+      console.log(`✅ Loaded: ${model.name}`);
     }
 
     // Setup associations
@@ -65,16 +59,14 @@ const initializeDatabase = async () => {
     db.Sequelize = Sequelize;
 
     // Sync database
-    if (process.env.NODE_ENV !== 'production' || process.env.DB_SYNC === 'alter') {
-      const syncMode = process.env.DB_SYNC === 'alter' ? 'alter' :
-                       process.env.DB_SYNC === 'force' ? 'force' : null;
-      if (syncMode) {
-        await sequelize.sync({ [syncMode]: true });
-        console.log(`✅ Database synchronized (mode: ${syncMode})`);
-      }
+    const syncMode = process.env.DB_SYNC === 'alter' ? 'alter' :
+                     process.env.DB_SYNC === 'force' ? 'force' : null;
+    if (syncMode) {
+      await sequelize.sync({ [syncMode]: true });
+      console.log(`✅ Database synced (mode: ${syncMode})`);
     }
 
-    console.log('📦 Available models:', Object.keys(db));
+    console.log('📦 Models ready:', Object.keys(db));
     return { sequelize, connected: true };
   } catch (error) {
     console.error('❌ Database error:', error.message);
