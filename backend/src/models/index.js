@@ -68,11 +68,8 @@ const initializeDatabase = async () => {
     return { sequelize, connected: true };
   } catch (error) {
     console.error('❌ PostgreSQL connection failed:', error.message);
-    console.warn('⚠️  Running in FALLBACK mode (in-memory storage). Start PostgreSQL for full features.');
-    databaseConnected = false;
-    db.sequelize = null;
-    db.connected = false;
-    return { sequelize: null, connected: false };
+    console.error('💥 Full error details:', error);
+    throw error;
   }
 };
 

@@ -45,7 +45,12 @@ export const signUp = async (name, email, password) => {
         const response = await fetch(`${baseURL}/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password })
+            body: JSON.stringify({ 
+                name, 
+                email, 
+                password, 
+                confirmPassword: password  // ← ADDED!
+            })
         });
 
         const data = await response.json();

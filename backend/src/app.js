@@ -7,6 +7,7 @@ const path = require('path');
 const { Client } = require('pg');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // MIDDLEWARE
 app.use(helmet());
