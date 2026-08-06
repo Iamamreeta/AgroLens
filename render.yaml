@@ -29,7 +29,7 @@ services:
     name: agrolens-ml
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn api.app:app --host 0.0.0.0 --port 5001
+ startCommand: uvicorn api.svm_app:app --host 0.0.0.0 --port 5001
     plan: free
     envVars:
       - key: PYTHON_VERSION
