@@ -4,7 +4,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
-const { Client } = require('pg');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -33,37 +32,49 @@ app.use(require('./middleware/errorMiddleware'));
 // START SERVER
 const PORT = process.env.PORT || 3000;
 
-// Test database connection
-const testDatabase = async () => {
-  try {
-    const client = new Client({
-      host: 'dpg-d9psntlbedkc73akq9d0-a',
-      port: 5432,
-      database: 'agrolens_db',
-      user: 'agrolens_db_user',
-      password: 'JHOJgIBG5k0ZxjJqV9sQv55NYraVw23A',
-      ssl: { rejectUnauthorized: false }
-    });
-    await client.connect();
-    console.log('✅ PostgreSQL connected!');
-    await client.end();
-    return true;
-  } catch (error) {
-    console.log('⚠️ PostgreSQL not connected:', error.message);
-    return false;
-  }
-};
+// ✅ USE SEQUELIZE
+const db = require('./models');
 
-app.listen(PORT, '0.0.0.0', async () => {
-  const dbStatus = await testDatabase();
-  console.log(`
+const startServer = async () => {
+  try {
+    // Test connection
+    await db.sequelize.authenticate();
+    console.log('✅ PostgreSQL connected!');
+    
+    // Sync database if DB_SYNC is set
+    if (process.env.DB_SYNC === 'alter') {
+      await db.sequelize.sync({ alter: true });
+      console.log('✅ Database synced');
+    }
+    
+    // Start server
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`
 ╔══════════════════════════════════════════════════════════╗
 ║              🌿 AGROLENS BACKEND READY                   ║
 ╠══════════════════════════════════════════════════════════╣
 ║  📡 Server:    http://0.0.0.0:${PORT}
-║  🗄️  Database: ${dbStatus ? '✅ Connected' : '⚠️ Not connected'}
+║  🗄️  Database: ✅ Connected
+║  📦 Models:    ${Object.keys(db).filter(k => k !== 'sequelize' && k !== 'Sequelize').join(', ')}
 ╚══════════════════════════════════════════════════════════╝
-  `);
-});
+      `);
+    });
+  } catch (error) {
+    console.error('❌ Database error:', error.message);
+    // Start without database (fallback)
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`
+╔══════════════════════════════════════════════════════════╗
+║              🌿 AGROLENS BACKEND READY                   ║
+╠══════════════════════════════════════════════════════════╣
+║  📡 Server:    http://0.0.0.0:${PORT}
+║  🗄️  Database: ❌ Not connected
+╚══════════════════════════════════════════════════════════╝
+      `);
+    });
+  }
+};
+
+startServer();
 
 module.exports = app;

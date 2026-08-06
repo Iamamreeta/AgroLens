@@ -1,80 +1,40 @@
-const fs = require('fs');
-const path = require('path');
-const Sequelize = require('sequelize');
-const basename = path.basename(__filename);
+const { Sequelize, DataTypes } = require('sequelize');
+const config = require('../config/database.js');
+
 const env = process.env.NODE_ENV || 'development';
-const config = require('../config/database.js')[env];
+const dbConfig = config[env];
 
-const db = {};
-
-let sequelize;
-
-const initializeDatabase = async () => {
-  try {
-    console.log('🔍 Connecting to database...');
-
-    if (config.use_env_variable) {
-      sequelize = new Sequelize(process.env[config.use_env_variable], config);
-    } else {
-      sequelize = new Sequelize(
-        config.database,
-        config.username,
-        config.password,
-        config
-      );
-    }
-
-    await sequelize.authenticate();
-    console.log('✅ PostgreSQL connected!');
-
-    // Load models
-    const modelFiles = fs
-      .readdirSync(__dirname)
-      .filter((file) => {
-        return (
-          file.indexOf('.') !== 0 &&
-          file !== basename &&
-          file.slice(-3) === '.js' &&
-          file.indexOf('.test.js') === -1
-        );
-      });
-
-    console.log('📦 Models found:', modelFiles);
-
-    for (const file of modelFiles) {
-      const modelDef = require(path.join(__dirname, file));
-      const model = modelDef(sequelize, Sequelize.DataTypes);
-      db[model.name] = model;
-      console.log(`✅ Loaded: ${model.name}`);
-    }
-
-    // Setup associations
-    Object.keys(db).forEach((modelName) => {
-      if (db[modelName].associate) {
-        db[modelName].associate(db);
-      }
-    });
-
-    db.sequelize = sequelize;
-    db.Sequelize = Sequelize;
-
-    // Sync database
-    const syncMode = process.env.DB_SYNC === 'alter' ? 'alter' :
-                     process.env.DB_SYNC === 'force' ? 'force' : null;
-    if (syncMode) {
-      await sequelize.sync({ [syncMode]: true });
-      console.log(`✅ Database synced (mode: ${syncMode})`);
-    }
-
-    console.log('📦 Models ready:', Object.keys(db));
-    return { sequelize, connected: true };
-  } catch (error) {
-    console.error('❌ Database error:', error.message);
-    console.error('💥 Full error:', error);
-    throw error;
+// Create connection
+const sequelize = new Sequelize(
+  dbConfig.database,
+  dbConfig.username,
+  dbConfig.password,
+  {
+    host: dbConfig.host,
+    port: dbConfig.port,
+    dialect: 'postgres',
+    logging: false,
+    dialectOptions: dbConfig.dialectOptions || {}
   }
+);
+
+// Load models manually
+const User = require('./User')(sequelize, DataTypes);
+const Prediction = require('./Prediction')(sequelize, DataTypes);
+const DiseaseInfo = require('./DiseaseInfo')(sequelize, DataTypes);
+
+// Setup relationships
+User.hasMany(Prediction, { foreignKey: 'user_id' });
+Prediction.belongsTo(User, { foreignKey: 'user_id' });
+
+DiseaseInfo.hasMany(Prediction, { foreignKey: 'disease_key' });
+Prediction.belongsTo(DiseaseInfo, { foreignKey: 'disease_key' });
+
+// Export
+module.exports = {
+  User,
+  Prediction,
+  DiseaseInfo,
+  sequelize,
+  Sequelize
 };
-
-db.initializeDatabase = initializeDatabase;
-
-module.exports = db;
