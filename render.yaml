@@ -2,6 +2,7 @@ services:
   - type: web
     name: agrolens-api
     env: node
+    rootDir: backend
     buildCommand: npm install
     startCommand: npm start
     plan: free
@@ -28,8 +29,9 @@ services:
   - type: web
     name: agrolens-ml
     env: python
+    rootDir: ml-model
     buildCommand: pip install -r requirements.txt
- startCommand: uvicorn api.svm_app:app --host 0.0.0.0 --port 5001
+    startCommand: uvicorn api.svm_app:app --host 0.0.0.0 --port 5001
     plan: free
     envVars:
       - key: PYTHON_VERSION
@@ -38,3 +40,5 @@ services:
 databases:
   - name: agrolens-db
     plan: free
+    databaseName: agrolens
+    user: agrolens_user
