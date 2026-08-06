@@ -3,16 +3,10 @@ import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL as DEFAULT_API_URL } from '../config/api';
 
 const API_URL_KEY = 'api_base_url';
-
-// ============================================
-// 📦 API URL Helpers
-// ============================================
-
 let cachedBaseURL = null;
 
 export const getApiBaseUrl = async () => {
     if (cachedBaseURL) return cachedBaseURL;
-    
     try {
         const saved = await AsyncStorage.getItem(API_URL_KEY);
         if (saved) {
@@ -33,28 +27,18 @@ export const setApiBaseUrl = async (url) => {
 };
 
 // ============================================
-// 🔐 AUTHENTICATION FUNCTIONS
+// 🔐 AUTHENTICATION
 // ============================================
 
-/**
- * Sign Up - Create user in PostgreSQL
- */
 export const signUp = async (name, email, password) => {
     try {
         const baseURL = await getApiBaseUrl();
         const response = await fetch(`${baseURL}/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                name, 
-                email, 
-                password, 
-                confirmPassword: password  // ← ADDED!
-            })
+            body: JSON.stringify({ name, email, password, confirmPassword: password })
         });
-
         const data = await response.json();
-
         if (response.ok) {
             await SecureStore.setItemAsync('auth_token', data.token);
             await AsyncStorage.setItem('user_data', JSON.stringify(data.user));
@@ -68,9 +52,6 @@ export const signUp = async (name, email, password) => {
     }
 };
 
-/**
- * Login - Authenticate via PostgreSQL
- */
 export const login = async (email, password) => {
     try {
         const baseURL = await getApiBaseUrl();
@@ -79,9 +60,7 @@ export const login = async (email, password) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
         });
-
         const data = await response.json();
-
         if (response.ok) {
             await SecureStore.setItemAsync('auth_token', data.token);
             await AsyncStorage.setItem('user_data', JSON.stringify(data.user));
@@ -95,9 +74,6 @@ export const login = async (email, password) => {
     }
 };
 
-/**
- * Logout - Remove JWT token
- */
 export const logout = async () => {
     try {
         await SecureStore.deleteItemAsync('auth_token');
@@ -108,25 +84,17 @@ export const logout = async () => {
     }
 };
 
-/**
- * Get Current User - From PostgreSQL via JWT
- */
 export const getCurrentUser = async () => {
     try {
         const token = await SecureStore.getItemAsync('auth_token');
         if (!token) {
-            // Try local fallback
             const userJson = await AsyncStorage.getItem('user_data');
             return userJson ? JSON.parse(userJson) : null;
         }
-
         const baseURL = await getApiBaseUrl();
         const response = await fetch(`${baseURL}/auth/me`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
-
         if (response.ok) {
             const data = await response.json();
             const user = data.user || data;
@@ -139,33 +107,80 @@ export const getCurrentUser = async () => {
         }
     } catch (error) {
         console.error('Get user error:', error);
-        // Fallback to cached user data
         try {
             const userJson = await AsyncStorage.getItem('user_data');
             return userJson ? JSON.parse(userJson) : null;
-        } catch {
-            return null;
-        }
+        } catch { return null; }
     }
 };
 
-/**
- * Check if user is logged in
- */
 export const isLoggedIn = async () => {
     const user = await getCurrentUser();
     return user !== null;
 };
 
-/**
- * Save prediction to PostgreSQL
- */
+// ============================================
+// 📊 PREDICTIONS & HISTORY
+// ============================================
+
+export const predictDisease = async (imageUri) => {
+    try {
+        const token = await SecureStore.getItemAsync('auth_token');
+        if (!token) return { success: false, error: 'Not logged in' };
+
+        const baseURL = await getApiBaseUrl();
+        const formData = new FormData();
+        formData.append('image', {
+            uri: imageUri,
+            type: 'image/jpeg',
+            name: 'photo.jpg'
+        });
+
+        const response = await fetch(`${baseURL}/predict`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, prediction: data };
+        } else {
+            const error = await response.json();
+            return { success: false, error: error.error || 'Prediction failed' };
+        }
+    } catch (error) {
+        console.error('Predict error:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+export const getHistory = async () => {
+    try {
+        const token = await SecureStore.getItemAsync('auth_token');
+        if (!token) return { success: false, error: 'Not logged in', history: [] };
+
+        const baseURL = await getApiBaseUrl();
+        const response = await fetch(`${baseURL}/predictions`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, history: data.predictions || data };
+        } else {
+            return { success: false, error: 'Failed to fetch', history: [] };
+        }
+    } catch (error) {
+        console.error('Get history error:', error);
+        return { success: false, error: error.message, history: [] };
+    }
+};
+
 export const savePrediction = async (prediction) => {
     try {
         const token = await SecureStore.getItemAsync('auth_token');
-        if (!token) {
-            return { success: false, error: 'Not logged in' };
-        }
+        if (!token) return { success: false, error: 'Not logged in' };
 
         const baseURL = await getApiBaseUrl();
         const response = await fetch(`${baseURL}/predictions`, {
@@ -190,83 +205,14 @@ export const savePrediction = async (prediction) => {
     }
 };
 
-/**
- * Get all predictions from PostgreSQL
- */
-export const getPredictions = async () => {
-    try {
-        const token = await SecureStore.getItemAsync('auth_token');
-        if (!token) {
-            return { success: false, error: 'Not logged in', predictions: [] };
-        }
-
-        const baseURL = await getApiBaseUrl();
-        const response = await fetch(`${baseURL}/predictions`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            return { 
-                success: true, 
-                predictions: data.predictions || data 
-            };
-        } else {
-            return { success: false, error: 'Failed to fetch', predictions: [] };
-        }
-    } catch (error) {
-        console.error('Get predictions error:', error);
-        return { success: false, error: error.message, predictions: [] };
-    }
-};
-
-/**
- * Delete prediction from PostgreSQL
- */
-export const deletePrediction = async (predictionId) => {
-    try {
-        const token = await SecureStore.getItemAsync('auth_token');
-        if (!token) {
-            return { success: false, error: 'Not logged in' };
-        }
-
-        const baseURL = await getApiBaseUrl();
-        const response = await fetch(`${baseURL}/predictions/${predictionId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (response.ok) {
-            return { success: true };
-        } else {
-            const error = await response.json();
-            return { success: false, error: error.error || 'Failed to delete' };
-        }
-    } catch (error) {
-        console.error('Delete prediction error:', error);
-        return { success: false, error: error.message };
-    }
-};
-
-/**
- * Get user statistics from PostgreSQL
- */
 export const getUserStats = async () => {
     try {
         const token = await SecureStore.getItemAsync('auth_token');
-        if (!token) {
-            return { success: false, error: 'Not logged in' };
-        }
+        if (!token) return { success: false, error: 'Not logged in' };
 
         const baseURL = await getApiBaseUrl();
         const response = await fetch(`${baseURL}/users/stats`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
@@ -281,9 +227,6 @@ export const getUserStats = async () => {
     }
 };
 
-/**
- * Clear all data (for testing)
- */
 export const clearAllData = async () => {
     try {
         await SecureStore.deleteItemAsync('auth_token');
