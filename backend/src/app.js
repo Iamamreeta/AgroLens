@@ -4,13 +4,11 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
-const { sequelize } = require('./models');
+const { Client } = require('pg');
 
 const app = express();
 
-// ============================================
 // MIDDLEWARE
-// ============================================
 app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
@@ -18,81 +16,53 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// ============================================
 // ROUTES
-// ============================================
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/predictions', require('./routes/predictionRoutes'));
 app.use('/health', require('./routes/healthRoutes'));
 
-// Root route
 app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'AgroLens Backend API',
-    version: '1.0.0',
-    endpoints: {
-      health: '/health',
-      auth: '/api/auth',
-      predictions: '/api/predictions'
-    }
-  });
+  res.json({ success: true, message: 'AgroLens Backend API', version: '1.0.0' });
 });
 
-// ============================================
 // ERROR HANDLING
-// ============================================
 app.use(require('./middleware/notFound'));
 app.use(require('./middleware/errorMiddleware'));
 
-// ============================================
-// DATABASE SYNC & START SERVER
-// ============================================
+// START SERVER
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
 
-const startServer = async () => {
+// Test database connection
+const testDatabase = async () => {
   try {
-    // Test database connection
-    await sequelize.authenticate();
-    console.log('✅ PostgreSQL connection established successfully');
-    
-    // Sync database (only in development)
-    if (process.env.NODE_ENV !== 'production') {
-      await sequelize.sync({ alter: true });
-      console.log('✅ Database synchronized');
-    }
-    
-    app.listen(PORT, HOST, () => {
-      console.log(`
-╔══════════════════════════════════════════════════════════╗
-║              🌿 AGROLENS BACKEND READY                   ║
-╠══════════════════════════════════════════════════════════╣
-║  📡 Server:    http://${HOST}:${PORT}
-║  📡 Local:     http://localhost:${PORT}
-║  🗄️  Database: ✅ PostgreSQL connected
-╚══════════════════════════════════════════════════════════╝
-      `);
+    const client = new Client({
+      host: 'dpg-d9psntlbedkc73akq9d0-a',
+      port: 5432,
+      database: 'agrolens_db',
+      user: 'agrolens_db_user',
+      password: 'JHOJgIBG5k0ZxjJqV9sQv55NYraVw23A',
+      ssl: { rejectUnauthorized: false }
     });
+    await client.connect();
+    console.log('✅ PostgreSQL connected!');
+    await client.end();
+    return true;
   } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
-    console.log('⚠️ Starting server without database...');
-    
-    // Start server even if database fails (in-memory mode)
-    app.listen(PORT, HOST, () => {
-      console.log(`
-╔══════════════════════════════════════════════════════════╗
-║              🌿 AGROLENS BACKEND READY                   ║
-╠══════════════════════════════════════════════════════════╣
-║  📡 Server:    http://${HOST}:${PORT}
-║  📡 Local:     http://localhost:${PORT}
-║  🗄️  Database: ⚠️ Not connected (in-memory mode)
-╚══════════════════════════════════════════════════════════╝
-      `);
-    });
+    console.log('⚠️ PostgreSQL not connected:', error.message);
+    return false;
   }
 };
 
-startServer();
+app.listen(PORT, '0.0.0.0', async () => {
+  const dbStatus = await testDatabase();
+  console.log(`
+╔══════════════════════════════════════════════════════════╗
+║              🌿 AGROLENS BACKEND READY                   ║
+╠══════════════════════════════════════════════════════════╣
+║  📡 Server:    http://0.0.0.0:${PORT}
+║  🗄️  Database: ${dbStatus ? '✅ Connected' : '⚠️ Not connected'}
+╚══════════════════════════════════════════════════════════╝
+  `);
+});
 
 module.exports = app;
