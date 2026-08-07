@@ -161,7 +161,7 @@ export const getHistory = async () => {
         if (!token) return { success: false, error: 'Not logged in', history: [] };
 
         const baseURL = await getApiBaseUrl();
-        const response = await fetch(`${baseURL}/predictions`, {
+        const response = await fetch(`${baseURL}/history`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -211,7 +211,7 @@ export const getUserStats = async () => {
         if (!token) return { success: false, error: 'Not logged in' };
 
         const baseURL = await getApiBaseUrl();
-        const response = await fetch(`${baseURL}/users/stats`, {
+        const response = await fetch(`${baseURL}/auth/stats`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 

@@ -15,7 +15,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load model
 model_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'svm_tomato_model.pkl')
 model = joblib.load(model_path)
 CLASSES = ['Early_Blight', 'Healthy', 'Late_Blight', 'Leaf_Mold']
