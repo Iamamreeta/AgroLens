@@ -1,10 +1,12 @@
 import joblib
 import numpy as np
+import onnxruntime as ort
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 import io
 import os
+import urllib.request
 
 app = FastAPI()
 
@@ -15,25 +17,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-model_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'svm_tomato_model.pkl')
-model = joblib.load(model_path)
-CLASSES = ['Early_Blight', 'Healthy', 'Late_Blight', 'Leaf_Mold']
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, '..', 'models', 'svm_tomato_model.pkl')
+ONNX_PATH = os.path.join(BASE_DIR, '..', 'models', 'vgg16_features.onnx')
+
+# Download ONNX if not exists
+VGG16_ONNX_URL = os.environ.get('VGG16_ONNX_URL', '')
+if not os.path.exists(ONNX_PATH) and VGG16_ONNX_URL:
+    print(f"Downloading ONNX from {VGG16_ONNX_URL}...")
+    os.makedirs(os.path.dirname(ONNX_PATH), exist_ok=True)
+    urllib.request.urlretrieve(VGG16_ONNX_URL, ONNX_PATH)
+    print("✅ ONNX downloaded")
+
+bundle = joblib.load(MODEL_PATH)
+svm = bundle['model']
+scaler = bundle['scaler']
+label_encoder = bundle['label_encoder']
+CLASSES = list(label_encoder.classes_)
+
+session = ort.InferenceSession(ONNX_PATH)
+INPUT_NAME = session.get_inputs()[0].name
+
+VGG_BGR_MEAN = np.array([103.939, 116.779, 123.68], dtype=np.float32)
 
 def extract_features(image_bytes):
-    img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-    img = img.resize((256, 256))
-    img_array = np.array(img)
-    
-    features = []
-    for channel in range(3):
-        hist = np.histogram(img_array[:, :, channel], bins=256, range=(0, 256))[0]
-        hist = hist / np.sum(hist)
-        features.extend(hist[:170])
-    
-    if len(features) < 512:
-        features = features + [0] * (512 - len(features))
-    
-    return np.array(features).reshape(1, -1)
+    img = Image.open(io.BytesIO(image_bytes)).convert('RGB').resize((224, 224))
+    arr = np.asarray(img, dtype=np.float32)[None, ...]
+    arr = arr[..., ::-1] - VGG_BGR_MEAN
+    return session.run(None, {INPUT_NAME: arr})[0]
 
 @app.get("/health")
 async def health():
@@ -43,18 +54,16 @@ async def health():
 async def predict(file: UploadFile = File(...)):
     contents = await file.read()
     features = extract_features(contents)
-    
-    prediction = model.predict(features)[0]
-    probabilities = model.predict_proba(features)[0]
-    confidence = max(probabilities) * 100
-    
+    features = scaler.transform(features)
+    pred_idx = int(svm.predict(features)[0])
+    proba = svm.predict_proba(features)[0]
+    disease = label_encoder.inverse_transform([pred_idx])[0]
     return {
-        "disease": prediction,
-        "confidence": round(confidence, 2),
-        "status": "Healthy" if prediction == "Healthy" else "Diseased",
+        "disease": disease,
+        "confidence": round(float(proba[pred_idx]) * 100, 2),
+        "status": "Healthy" if disease == "Healthy" else "Diseased",
         "probabilities": {
-            CLASSES[i]: round(probabilities[i] * 100, 4)
-            for i in range(len(CLASSES))
+            CLASSES[i]: round(float(p) * 100, 4) for i, p in enumerate(proba)
         }
     }
 
