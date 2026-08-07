@@ -2,7 +2,7 @@ const rateLimit = require('express-rate-limit');
 
 const globalLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -14,8 +14,10 @@ const globalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
-  skipSuccessfulRequests: true,
+  max: 20,
+  skipSuccessfulRequests: false,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: {
     success: false,
     status: 'fail',
@@ -25,7 +27,9 @@ const authLimiter = rateLimit({
 
 const predictLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 50,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: {
     success: false,
     status: 'fail',
@@ -33,4 +37,16 @@ const predictLimiter = rateLimit({
   },
 });
 
-module.exports = { globalLimiter, authLimiter, predictLimiter };
+const passwordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    status: 'fail',
+    message: 'Too many password reset attempts. Please try again in an hour.',
+  },
+});
+
+module.exports = { globalLimiter, authLimiter, predictLimiter, passwordLimiter };

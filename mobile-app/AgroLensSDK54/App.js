@@ -13,13 +13,15 @@ import HomeScreen from './src/screens/HomeScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
+import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
 
 const Stack = createStackNavigator();
 
 function SplashScreen() {
   return (
     <View style={styles.splash}>
-      <Text style={styles.splashTitle}>🌿 AgroLens</Text>
+      <Text style={styles.splashTitle}>AgroLens</Text>
       <Text style={styles.splashSub}>Preparing your tomato health assistant...</Text>
       <ActivityIndicator size="large" color="#2e7d32" style={{ marginTop: 24 }} />
     </View>
@@ -68,6 +70,8 @@ export default function App() {
             <Stack.Screen name="Onboarding" component={OnboardingScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="Results" component={ResultsScreen} />
             <Stack.Screen name="History" component={HistoryScreen} />

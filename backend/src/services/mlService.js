@@ -59,7 +59,7 @@ class MLService {
         info = await diseaseInfoRepo.matchBest(key, all);
       }
     } catch (e) {
-      console.warn('⚠️  DiseaseInfo lookup failed:', e.message);
+      console.warn('[WARN] DiseaseInfo lookup failed:', e.message);
     }
     if (info) {
       result.disease_name = info.display_name || info.disease_key;
@@ -100,7 +100,7 @@ class MLService {
     try {
       saved = await predictionRepo.create(prediction);
     } catch (e) {
-      console.warn('⚠️  Could not save prediction to DB:', e.message);
+      console.warn('[WARN] Could not save prediction to DB:', e.message);
       saved = { id: `mem-${Date.now()}`, ...prediction };
       this.inMemoryStore.unshift(saved);
     }
@@ -109,7 +109,7 @@ class MLService {
         await userRepo.updateStats(userId, isHealthy);
       }
     } catch (e) {
-      console.warn('⚠️  Could not update user stats:', e.message);
+      console.warn('[WARN] Could not update user stats:', e.message);
     }
     return saved;
   }

@@ -56,27 +56,47 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         defaultValue: 0,
         allowNull: false,
-        validate: {
-          min: 0,
-        },
+        validate: { min: 0 },
       },
       healthy_count: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
         allowNull: false,
-        validate: {
-          min: 0,
-        },
+        validate: { min: 0 },
       },
       disease_count: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
         allowNull: false,
-        validate: {
-          min: 0,
-        },
+        validate: { min: 0 },
       },
       last_login_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      reset_password_token_hash: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+      },
+      reset_password_expires_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      reset_password_used: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+      },
+      email_verification_token: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+      },
+      email_verified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+      },
+      email_verified_at: {
         type: DataTypes.DATE,
         allowNull: true,
       },

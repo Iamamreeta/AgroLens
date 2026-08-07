@@ -1,13 +1,15 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const userRepo = require('../repositories/userRepository');
 const AppError = require('../utils/AppError');
+const emailService = require('./emailService');
 
 const getSecret = () => {
   const secret = process.env.JWT_SECRET;
   if (!secret || secret.length < 16) {
     if (process.env.NODE_ENV === 'production') {
-      console.error('[AuthService] JWT_SECRET is too short or not set. Set a secure long random secret.');
+      console.error('[AuthService] WARNING: JWT_SECRET is too short or not set. Set a secure long random secret.');
     }
     return secret || 'agrolens-dev-secret-insecure-change-me-2024';
   }
@@ -42,7 +44,17 @@ const userSafe = (user) => ({
   disease_count: typeof user.disease_count === 'number' ? user.disease_count : 0,
   last_login_at: user.last_login_at || null,
   created_at: user.created_at || user.createdAt || new Date(),
+  email_verified: Boolean(user.email_verified) || false,
 });
+
+const hashToken = (token) =>
+  crypto.createHash('sha256').update(String(token)).digest('hex');
+
+const generateResetToken = () => {
+  const raw = crypto.randomBytes(3).toString('hex');
+  const code = raw.toUpperCase();
+  return code.match(/.{1,6}/g).slice(0,6).join('-') || raw.slice(0, 36);
+};
 
 class AuthService {
   createTokenResponse(user) {
@@ -73,6 +85,7 @@ class AuthService {
     });
     await userRepo.updateLastLogin(created.id);
     const refreshed = (await userRepo.findById(created.id)) || created;
+    emailService.sendWelcome(normalizedEmail, created.name).catch(() => null);
     return this.createTokenResponse(refreshed);
   }
 
@@ -129,6 +142,54 @@ class AuthService {
     await require('../repositories/predictionRepository').deleteAllByUserId(userId).catch(() => null);
     await userRepo.delete(userId);
     return true;
+  }
+
+  async forgotPassword(email, clientResetUrl) {
+    if (!email) {
+      throw new AppError('Email is required', 400);
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await userRepo.findByEmail(normalizedEmail);
+    if (!user) {
+      return {
+        sent: true,
+        message: 'If a matching email exists, a password reset link has been sent.',
+      };
+    }
+    const rawToken = generateResetToken();
+    const tokenHash = hashToken(rawToken);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    await userRepo.setResetToken(user.id, tokenHash, expiresAt);
+    const resetUrl = clientResetUrl
+      ? `${clientResetUrl}?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(normalizedEmail)}`
+      : null;
+    await emailService.sendPasswordReset(normalizedEmail, user.name, rawToken, resetUrl);
+    return {
+      sent: true,
+      message: 'If a matching email exists, a password reset link has been sent.',
+    };
+  }
+
+  async resetPassword(token, newPassword) {
+    if (!token || !newPassword) {
+      throw new AppError('Token and new password are required', 400);
+    }
+    if (typeof newPassword !== 'string' || newPassword.length < 8) {
+      throw new AppError('New password must be at least 8 characters', 400);
+    }
+    const tokenHash = hashToken(String(token).trim());
+    const user = await userRepo.findByResetTokenHash(tokenHash);
+    if (!user) {
+      throw new AppError('Invalid or expired password reset token', 400);
+    }
+    await userRepo.markResetTokenUsed(user.id);
+    const salt = await bcrypt.genSalt(12);
+    const hashed = await bcrypt.hash(newPassword, salt);
+    await userRepo.changePassword(user.id, hashed);
+    return {
+      success: true,
+      message: 'Password updated successfully. Please log in with your new password.',
+    };
   }
 
   async getCurrentUserFromToken(req) {

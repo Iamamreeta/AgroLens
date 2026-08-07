@@ -21,7 +21,7 @@ const deleteFile = (filePath) => {
       return true;
     }
   } catch (err) {
-    console.warn('⚠️  Failed to delete file:', filePath, err.message);
+    console.warn('[WARN] Failed to delete file:', filePath, err.message);
   }
   return false;
 };

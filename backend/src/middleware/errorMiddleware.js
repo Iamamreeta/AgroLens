@@ -38,7 +38,7 @@ const sendErrorProd = (err, res) => {
       error: err.message
     });
   }
-  console.error('💥 ERROR 💥', err);
+  console.error('[FATAL ERROR]', err);
   return res.status(500).json({
     success: false,
     error: 'Something went wrong'

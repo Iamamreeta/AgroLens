@@ -55,6 +55,7 @@ exports.me = catchAsync(async (req, res) => {
       disease_count: req.user.disease_count || 0,
       last_login_at: req.user.last_login_at || null,
       created_at: req.user.created_at || req.user.createdAt || new Date(),
+      email_verified: Boolean(req.user.email_verified) || false,
     },
   });
 });
@@ -103,10 +104,8 @@ exports.getUserStats = catchAsync(async (req, res) => {
   const weekly = await predictionRepo.getWeeklyCounts(userId);
   const monthly = await predictionRepo.getMonthlyCounts(userId);
   const mostCommon = await predictionRepo.getMostCommonDisease(userId);
-
-  const today = new Date();
   const streak = await predictionRepo.getScanStreak(userId);
-
+  const today = new Date();
   res.status(200).json({
     success: true,
     data: {
@@ -120,5 +119,27 @@ exports.getUserStats = catchAsync(async (req, res) => {
       recent: quick.recent || [],
       last_updated: today.toISOString(),
     },
+  });
+});
+
+exports.forgotPassword = catchAsync(async (req, res) => {
+  const { email, resetUrl } = req.body || {};
+  const result = await authService.forgotPassword(email, resetUrl);
+  res.status(200).json({
+    success: true,
+    sent: result.sent,
+    message: result.message,
+  });
+});
+
+exports.resetPassword = catchAsync(async (req, res) => {
+  const { token, newPassword, confirmNewPassword } = req.body || {};
+  if (confirmNewPassword !== undefined && newPassword !== confirmNewPassword) {
+    throw new AppError('Passwords do not match', 400);
+  }
+  const result = await authService.resetPassword(token, newPassword);
+  res.status(200).json({
+    success: true,
+    message: result.message,
   });
 });
