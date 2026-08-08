@@ -205,7 +205,7 @@ export default function ResultsScreen({ navigation, route }) {
             {typeof merged.green_ratio === 'number' && (
               <View style={styles.chipWrap}>
                 <Text style={[styles.chipLabel, { color: '#43a047' }]}>Green</Text>
-                <Text style={styles.chipValue}>{merged.green_ratio}%</Text>
+                <Text style={styles.chipValue}>{(merged.green_ratio <= 1 ? merged.green_ratio * 100 : merged.green_ratio).toFixed(1)}%</Text>
               </View>
             )}
           </View>
