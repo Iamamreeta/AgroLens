@@ -1,6 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as ImageManipulator from 'expo-image-manipulator';
+// Native uploader (much more reliable than fetch+FormData on Android).
+let FileSystem;
+try { FileSystem = require('expo-file-system/legacy'); }
+catch (e) { FileSystem = require('expo-file-system'); }
 import { API_BASE_URL as DEFAULT_API_URL } from '../config/api';
 
 // Always use the URL from src/config/api.js — no saved overrides.
@@ -132,22 +136,23 @@ export const predictDisease = async (imageUri) => {
         const token = await SecureStore.getItemAsync('auth_token');
         if (!token) return { success: false, error: 'Not logged in' };
 
-        const uploadUri = await prepareImage(imageUri);
-        console.log('Predicting with image:', uploadUri);
-
         const baseURL = await getApiBaseUrl();
+        console.log('🔍 PREDICT URL:', `${baseURL}/predict`);
+
         const formData = new FormData();
         formData.append('image', {
-            uri: uploadUri,
+            uri: imageUri,
             type: 'image/jpeg',
             name: 'photo.jpg'
         });
 
-        const response = await fetch(`${baseURL}/predictions/predict`, {
+        const response = await fetch(`${baseURL}/predict`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
             body: formData
         });
+
+        console.log('📥 Response status:', response.status);
 
         if (response.ok) {
             const data = await response.json();
