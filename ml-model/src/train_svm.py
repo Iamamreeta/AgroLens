@@ -68,12 +68,12 @@ print(f"   ✅ Features scaled successfully!")
 # ============================================
 print("\n🤖 Training SVM Classifier...")
 print("   Kernel: RBF")
-print("   C: 1.0")
+print("   C: 3.0")
 print("   Gamma: scale")
 
 svm = SVC(
     kernel='rbf',        # RBF kernel works well for image features
-    C=1.0,               # Regularization parameter
+    C=3.0,               # Regularization parameter
     gamma='scale',       # Kernel coefficient
     probability=True,    # Enable confidence scores
     random_state=42,     # For reproducibility
@@ -152,7 +152,7 @@ model_data = {
     'classes': classes,
     'accuracy': accuracy,
     'kernel': 'rbf',
-    'C': 1.0,
+    'C': 3.0,
     'gamma': 'scale'
 }
 
@@ -192,7 +192,7 @@ with open('results/training_results.txt', 'w') as f:
     f.write(f"Test samples: {X_test.shape[0]}\n")
     f.write(f"Features: {X_train.shape[1]}\n")
     f.write(f"Kernel: rbf\n")
-    f.write(f"C: 1.0\n")
+    f.write(f"C: 3.0\n")
     f.write(f"Gamma: scale\n")
     f.write(f"Time taken: {elapsed_time:.2f} seconds\n")
 print("   ✅ Results saved to 'results/training_results.txt'")
