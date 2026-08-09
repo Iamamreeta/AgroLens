@@ -18,44 +18,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   getCurrentUser,
   logout,
-  getUserStats,
   changePassword,
   deleteAccount,
-  getHistory,
 } from '../services/AuthService';
 import AppLogo from '../../assets/logo.png';
 
 const SECTION_PADDING = 20;
 
-function Bar({ label, value, max, color }) {
-  const heightPct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
-  return (
-    <View style={{ alignItems: 'center', width: 36 }}>
-      <Text style={{ fontSize: 11, fontWeight: '800', color: '#37474f', marginBottom: 6 }}>
-        {value}
-      </Text>
-      <View
-        style={{
-          width: '100%',
-          height: 80,
-          backgroundColor: '#eceff1',
-          borderRadius: 8,
-          justifyContent: 'flex-end',
-          overflow: 'hidden',
-        }}
-      >
-        <View style={{ height: `${heightPct}%`, backgroundColor: color, borderRadius: 8 }} />
-      </View>
-      <Text style={{ fontSize: 10, color: '#78909c', marginTop: 6, textAlign: 'center' }}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
 export default function ProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);
-  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [passwordModal, setPasswordModal] = useState(false);
@@ -69,24 +40,8 @@ export default function ProfileScreen({ navigation }) {
   const loadAll = useCallback(async () => {
     setToast(null);
     try {
-      const [u, s, h] = await Promise.all([
-        getCurrentUser(),
-        getUserStats().catch((e) => ({ success: false, error: e.message, stats: null })),
-        getHistory({ limit: 1 }).catch(() => ({ history: [], count: 0 })),
-      ]);
+      const u = await getCurrentUser();
       setUser(u);
-      if (s && s.success) {
-        setStats(s.stats);
-      } else if (u) {
-        setStats({
-          total: u.total_scans || 0,
-          healthy: u.healthy_count || 0,
-          diseased: u.disease_count || 0,
-          recent: (h && h.history) || [],
-          weekly: [],
-          monthly: [],
-        });
-      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -176,16 +131,6 @@ export default function ProfileScreen({ navigation }) {
     );
   };
 
-  const total = stats?.total || 0;
-  const healthy = stats?.healthy || 0;
-  const diseased = stats?.diseased || 0;
-  const weekly = stats?.weekly || [];
-  const monthly = stats?.monthly || [];
-  const weekMax = weekly.reduce((m, w) => Math.max(m, w.total || 0), 0) || 1;
-  const monthMax = monthly.reduce((m, w) => Math.max(m, w.total || 0), 0) || 1;
-  const streak = stats?.streak_days || 0;
-  const mostCommon = stats?.most_common_disease;
-
   const initials = (user?.name || 'F').split(/\s+/).map((s) => s[0]).join('').slice(0, 2).toUpperCase();
 
   return (
@@ -238,12 +183,7 @@ export default function ProfileScreen({ navigation }) {
           </View>
           <Text style={styles.profileName}>{user?.name || 'Guest Farmer'}</Text>
           <Text style={styles.profileEmail}>{user?.email || 'Sign in to sync your scans'}</Text>
-          {streak > 0 && (
-            <View style={styles.streakChip}>
-              <Ionicons name="flame" size={16} color="#ef6c00" />
-              <Text style={styles.streakText}>{streak} day streak</Text>
-            </View>
-          )}
+          
           {!user && (
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 18 }}>
               <TouchableOpacity
@@ -270,83 +210,6 @@ export default function ProfileScreen({ navigation }) {
           </View>
         ) : (
           <>
-            <View style={styles.statsCard}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{total}</Text>
-                <Text style={styles.statLabel}>Total Scans</Text>
-              </View>
-              <View style={[styles.statItem, styles.statDivider]}>
-                <Text style={[styles.statValue, { color: '#2e7d32' }]}>{healthy}</Text>
-                <Text style={styles.statLabel}>Healthy</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: '#c62828' }]}>{diseased}</Text>
-                <Text style={styles.statLabel}>Diseased</Text>
-              </View>
-            </View>
-
-            {mostCommon && (
-              <View style={styles.infoCard}>
-                <View style={styles.cardHeader}>
-                  <Ionicons name="bug-outline" size={20} color="#c62828" />
-                  <Text style={styles.cardHeaderText}>Most common disease</Text>
-                </View>
-                <View style={styles.mostCommonRow}>
-                  <View style={styles.mostCommonBadge}>
-                    <Ionicons name="warning" size={18} color="#c62828" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.mostCommonName}>
-                      {mostCommon.disease_name || mostCommon.disease_key || 'Unknown'}
-                    </Text>
-                    <Text style={styles.mostCommonCount}>
-                      Detected {mostCommon.count || 0} time{mostCommon.count === 1 ? '' : 's'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {weekly.length > 0 && (
-              <View style={styles.infoCard}>
-                <View style={styles.cardHeader}>
-                  <Ionicons name="calendar-outline" size={20} color="#1976d2" />
-                  <Text style={styles.cardHeaderText}>Weekly activity (last 4 weeks)</Text>
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 }}>
-                  {weekly.map((w, i) => (
-                    <Bar
-                      key={`w-${i}`}
-                      label={`W${weekly.length - i}`}
-                      value={w.total || 0}
-                      max={weekMax}
-                      color="#66bb6a"
-                    />
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {monthly.length > 0 && monthly.some((m) => m.total > 0) && (
-              <View style={styles.infoCard}>
-                <View style={styles.cardHeader}>
-                  <Ionicons name="bar-chart-outline" size={20} color="#6a1b9a" />
-                  <Text style={styles.cardHeaderText}>Monthly scans (last 6 months)</Text>
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 }}>
-                  {monthly.map((m, i) => (
-                    <Bar
-                      key={`m-${i}`}
-                      label={m.label || `M${i + 1}`}
-                      value={m.total || 0}
-                      max={monthMax}
-                      color="#9575cd"
-                    />
-                  ))}
-                </View>
-              </View>
-            )}
-
             <View style={styles.menuCard}>
               <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('History')}>
                 <View style={[styles.menuIconContainer, { backgroundColor: '#e3f2fd' }]}>
@@ -665,70 +528,6 @@ const styles = StyleSheet.create({
   avatar: { width: 100, height: 100, borderRadius: 50 },
   profileName: { fontSize: 22, fontWeight: '800', color: '#1a3a2a' },
   profileEmail: { fontSize: 15, color: '#78909c', marginTop: 6 },
-  streakChip: {
-    marginTop: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff3e0',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 999,
-    gap: 6,
-  },
-  streakText: { color: '#e65100', fontWeight: '700' },
-
-  statsCard: {
-    backgroundColor: 'white',
-    marginHorizontal: SECTION_PADDING,
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    elevation: 2,
-    marginBottom: SECTION_PADDING,
-  },
-  statItem: { alignItems: 'center', flex: 1 },
-  statDivider: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: '#eceff1',
-  },
-  statValue: { fontSize: 32, fontWeight: '800', color: '#1a3a2a' },
-  statLabel: { fontSize: 13, color: '#78909c', marginTop: 4 },
-
-  infoCard: {
-    backgroundColor: 'white',
-    marginHorizontal: SECTION_PADDING,
-    borderRadius: 16,
-    padding: SECTION_PADDING,
-    elevation: 2,
-    marginBottom: SECTION_PADDING,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  cardHeaderText: { fontSize: 16, fontWeight: '700', color: '#1a3a2a' },
-  mostCommonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 12,
-    backgroundColor: '#ffebee',
-    borderRadius: 14,
-    padding: 14,
-  },
-  mostCommonBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mostCommonName: { fontSize: 16, fontWeight: '700', color: '#b71c1c' },
-  mostCommonCount: { marginTop: 2, color: '#6d4c41', fontSize: 13 },
 
   menuCard: {
     backgroundColor: 'white',
