@@ -70,8 +70,8 @@ export default function ResultsScreen({ navigation, route }) {
 
   const merged = useMemo(() => {
     if (!result) return null;
-    const key = result.disease || 'Healthy';
-    const fb = FALLBACK_INFO[key] || FALLBACK_INFO.Healthy;
+const key = (result.disease || 'Healthy').toLowerCase();
+const fb = FALLBACK_INFO[key] || FALLBACK_INFO.Healthy;
     const description =
       (typeof result.description === 'string' && result.description.trim().length > 4
         ? result.description
