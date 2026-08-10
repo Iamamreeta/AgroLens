@@ -11,8 +11,12 @@ import {
 import { Ionicons as Icon } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+// ============================================================
+// 🍅 ALL KEYS ARE LOWERCASE WITH UNDERSCORES
+// ============================================================
+
 const FALLBACK_INFO = {
-  Early_blight: {
+  early_blight: {
     severity: 'High',
     description: 'Fungal disease caused by Alternaria solani, appearing as target-like concentric rings on lower leaves.',
     symptoms: ['Brown to black spots with concentric rings', 'Yellowing tissue around lesions', 'Defoliation from bottom-up'],
@@ -20,15 +24,15 @@ const FALLBACK_INFO = {
     treatment: ['Remove infected leaves', 'Apply copper or chlorothalonil fungicide every 7 days', 'Mulch soil'],
     prevention: ['Crop rotation 2-3 years', 'Drip irrigation', 'Resistant cultivars'],
   },
-  Late_blight: {
+  late_blight: {
     severity: 'Critical',
     description: 'Devastating oomycete (Phytophthora infestans) that blights entire plants during cool, wet periods.',
     symptoms: ['Water-soaked dark lesions that expand rapidly', 'White mold on undersides at night', 'Black stem girdling'],
-    causes: ['Cool moist conditions 10-20 C', 'Wind-blown sporangia + infected transplants'],
+    causes: ['Cool moist conditions 10-20°C', 'Wind-blown sporangia + infected transplants'],
     treatment: ['Remove infected plants', 'Protectant fungicide chlorothalonil + mefenoxam', 'Stop overhead irrigation'],
     prevention: ['Resistant varieties', 'Adequate spacing and ventilation', 'Certified transplants'],
   },
-  Healthy: {
+  healthy: {
     severity: 'None',
     description: 'No disease detected. Maintain regular watering, scouting, and fertility programs.',
     symptoms: ['Uniformly green leaves', 'No spots or discoloration', 'Strong turgor and growth'],
@@ -36,7 +40,7 @@ const FALLBACK_INFO = {
     treatment: ['Continue good growing practices', 'Weekly scouting'],
     prevention: ['Crop rotation', 'Mulch at base', 'Fertilize monthly'],
   },
-  Leaf_mold: {
+  leaf_mold: {
     severity: 'Medium',
     description: 'Passalora fulva fungal mold growing in warm, humid, poorly ventilated environments.',
     symptoms: ['Yellow spots on upper leaf surface', 'Olive velvety mold on undersides', 'Curling leaves, defoliation'],
@@ -46,6 +50,10 @@ const FALLBACK_INFO = {
   },
 };
 
+// ============================================================
+// SEVERITY COLORS
+// ============================================================
+
 const SEVERITY_COLORS = {
   None: ['#2e7d32', '#66bb6a'],
   Low: ['#558b2f', '#9ccc65'],
@@ -53,6 +61,10 @@ const SEVERITY_COLORS = {
   High: ['#ef6c00', '#fb8c00'],
   Critical: ['#c62828', '#e53935'],
 };
+
+// ============================================================
+// HELPERS
+// ============================================================
 
 const splitList = (raw) => {
   if (Array.isArray(raw)) return raw.filter(Boolean);
@@ -65,27 +77,50 @@ const splitList = (raw) => {
   return [];
 };
 
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
+
 export default function ResultsScreen({ navigation, route }) {
   const result = route?.params?.result || null;
 
   const merged = useMemo(() => {
     if (!result) return null;
-const key = (result.disease || 'Healthy').toLowerCase();
-const fb = FALLBACK_INFO[key] || FALLBACK_INFO.Healthy;
+
+    // Normalize: lowercase, replace spaces with underscores
+    const rawKey = result.disease || 'Healthy';
+    const key = rawKey.toLowerCase().replace(/\s+/g, '_');
+    const fb = FALLBACK_INFO[key] || FALLBACK_INFO.healthy;
+
     const description =
       (typeof result.description === 'string' && result.description.trim().length > 4
         ? result.description
         : null) || fb.description;
-    const symptoms = splitList(result.symptoms).length > 0 ? splitList(result.symptoms) : fb.symptoms;
-    const causes = splitList(result.causes).length > 0 ? splitList(result.causes) : fb.causes;
-    const treatment = splitList(result.treatment).length > 0 ? splitList(result.treatment) : fb.treatment;
-    const prevention = splitList(result.prevention).length > 0 ? splitList(result.prevention) : fb.prevention;
+
+    const symptoms = splitList(result.symptoms).length > 0
+      ? splitList(result.symptoms)
+      : fb.symptoms;
+
+    const causes = splitList(result.causes).length > 0
+      ? splitList(result.causes)
+      : fb.causes;
+
+    const treatment = splitList(result.treatment).length > 0
+      ? splitList(result.treatment)
+      : fb.treatment;
+
+    const prevention = splitList(result.prevention).length > 0
+      ? splitList(result.prevention)
+      : fb.prevention;
+
     const severity = (typeof result.severity === 'string' && result.severity.trim())
       ? result.severity.trim()
       : fb.severity;
+
     const diseaseName = result.disease_name || result.disease || 'Unknown';
     const confidence = Number(result.confidence) || 0;
     const isHealthy = (result.status || '').toLowerCase() === 'healthy';
+
     return {
       ...result,
       disease_name_display: diseaseName,
